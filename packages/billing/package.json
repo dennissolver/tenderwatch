@@ -1,0 +1,18 @@
+{
+  "name": "@tenderwatch/billing",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "@tenderwatch/db": "workspace:*",
+    "@tenderwatch/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

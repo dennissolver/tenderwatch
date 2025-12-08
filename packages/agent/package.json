@@ -1,0 +1,22 @@
+{
+  "name": "@tenderwatch/agent",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.14.0",
+    "@browserbasehq/sdk": "^1.0.0",
+    "playwright": "^1.40.0",
+    "@tenderwatch/crypto": "workspace:*",
+    "@tenderwatch/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}
