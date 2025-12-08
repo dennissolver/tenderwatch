@@ -11,7 +11,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
 
   async login(username: string, password: string): Promise<LoginResult> {
     try {
-      await this.navigateTo(`\${this.siteUrl}/Account/Login`);
+      await this.navigateTo(`${this.siteUrl}/Account/Login`);
 
       // Wait for login form
       await this.page.waitForSelector("#Email", { timeout: 10000 });
@@ -64,7 +64,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
     const listings: TenderListing[] = [];
 
     // Navigate to search page
-    await this.navigateTo(`\${this.siteUrl}/Search/TenderSearch`);
+    await this.navigateTo(`${this.siteUrl}/Search/TenderSearch`);
 
     // Apply filters
     if (params.keywords?.length) {
@@ -95,7 +95,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
           buyerOrg: (await buyerEl?.textContent())?.trim(),
           closesAt: closesEl ? new Date((await closesEl.textContent())?.trim() || "") : undefined,
           valueRange: (await valueEl?.textContent())?.trim(),
-          url: `\${this.siteUrl}\${href}`
+          url: `${this.siteUrl}${href}`
         });
       }
     }
@@ -104,7 +104,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
   }
 
   async fetchTenderDetail(sourceId: string): Promise<TenderDetail> {
-    await this.navigateTo(`\${this.siteUrl}/ATM/Show/\${sourceId}`);
+    await this.navigateTo(`${this.siteUrl}/ATM/Show/${sourceId}`);
 
     // Extract details from page
     const title = await this.page.$eval("h1", el => el.textContent?.trim() || "");
@@ -116,7 +116,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
     const docLinks = await this.page.$$(".documents a[href*='download']");
     for (const link of docLinks) {
       const href = await link.getAttribute("href");
-      if (href) documentUrls.push(href.startsWith("http") ? href : `\${this.siteUrl}\${href}`);
+      if (href) documentUrls.push(href.startsWith("http") ? href : `${this.siteUrl}${href}`);
     }
 
     return {

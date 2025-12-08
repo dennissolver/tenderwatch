@@ -20,7 +20,7 @@ export const sendDigest = inngest.createFunction(
     let sentCount = 0;
 
     for (const user of usersToNotify) {
-      await step.run(\`send-digest-\${user.id}\`, async () => {
+      await step.run(`send-digest-${user.id}`, async () => {
         // Get user's watches with daily delivery
         const userWatches = await db.query.watches.findMany({
           where: and(
@@ -33,12 +33,12 @@ export const sendDigest = inngest.createFunction(
         if (userWatches.length === 0) return;
 
         const watchIds = userWatches.map(w => w.id);
-
+        
         // Get unnotified matches from past 24 hours
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
+        
         // TODO: Query matches and send email
-        console.log(\`Would send digest to \${user.email} for \${watchIds.length} watches\`);
+        console.log(`Would send digest to ${user.email} for ${watchIds.length} watches`);
         sentCount++;
       });
     }

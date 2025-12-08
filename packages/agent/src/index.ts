@@ -17,6 +17,6 @@ export function getAdapter(site: string, browser: Browser, page: any): BaseSiteA
       return new AusTenderAdapter(browser, page);
     // TODO: Add more cases
     default:
-      throw new Error(\`Unknown site: \${site}\`);
+      throw new Error(`Unknown site: ${site}`);
   }
 }

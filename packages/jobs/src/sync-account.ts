@@ -22,7 +22,7 @@ export const syncAccount = inngest.createFunction(
       const result = await db.query.linkedAccounts.findFirst({
         where: eq(linkedAccounts.id, accountId)
       });
-      if (!result) throw new Error(\`Account not found: \${accountId}\`);
+      if (!result) throw new Error(`Account not found: ${accountId}`);
       return result;
     });
 
@@ -37,9 +37,9 @@ export const syncAccount = inngest.createFunction(
       // const browser = await browserbase.connect();
       // const page = await browser.newPage();
       // const adapter = getAdapter(account.site, browser, page);
-
+      
       // For now, return empty array
-      console.log(\`Would sync \${account.site} for user \${account.userId}\`);
+      console.log(`Would sync ${account.site} for user ${account.userId}`);
       return [];
     });
 

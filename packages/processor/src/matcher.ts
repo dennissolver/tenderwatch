@@ -41,10 +41,10 @@ export function matchTender(
   const matchedKeywords: string[] = [];
   const reasons: string[] = [];
 
-  const searchText = \`\${tender.title} \${tender.description} \${tender.fullText || ""}\`.toLowerCase();
+  const searchText = `${tender.title} ${tender.description} ${tender.fullText || ""}`.toLowerCase();
 
   // HARD FILTERS - instant rejection
-
+  
   // Excluded keywords
   for (const keyword of config.keywordsExclude) {
     if (searchText.includes(keyword.toLowerCase())) {
@@ -52,7 +52,7 @@ export function matchTender(
         score: 0,
         tier: "reject",
         matchedKeywords: [],
-        reasoning: \`Contains excluded keyword: "\${keyword}"\`
+        reasoning: `Contains excluded keyword: "${keyword}"`
       };
     }
   }
@@ -79,7 +79,7 @@ export function matchTender(
         score: 0,
         tier: "reject",
         matchedKeywords: [],
-        reasoning: \`Value ($\${tender.valueLow.toLocaleString()}) below minimum ($\${config.valueMin.toLocaleString()})\`
+        reasoning: `Value ($${tender.valueLow.toLocaleString()}) below minimum ($${config.valueMin.toLocaleString()})`
       };
     }
     if (config.valueMax && tender.valueHigh && tender.valueHigh > config.valueMax) {
@@ -87,7 +87,7 @@ export function matchTender(
         score: 0,
         tier: "reject",
         matchedKeywords: [],
-        reasoning: \`Value ($\${tender.valueHigh.toLocaleString()}) above maximum ($\${config.valueMax.toLocaleString()})\`
+        reasoning: `Value ($${tender.valueHigh.toLocaleString()}) above maximum ($${config.valueMax.toLocaleString()})`
       };
     }
   } else if (!config.includeUnspecifiedValue) {
@@ -109,7 +109,7 @@ export function matchTender(
         score: 0,
         tier: "reject",
         matchedKeywords: [],
-        reasoning: \`Only \${daysUntilClose} days to respond (minimum: \${config.minResponseDays})\`
+        reasoning: `Only ${daysUntilClose} days to respond (minimum: ${config.minResponseDays})`
       };
     }
   }
@@ -128,7 +128,7 @@ export function matchTender(
     }
   }
   if (mustMatchCount > 0) {
-    reasons.push(\`Matched \${mustMatchCount} must-have keyword(s)\`);
+    reasons.push(`Matched ${mustMatchCount} must-have keyword(s)`);
   }
 
   // Bonus keywords (15 points each, max 45)
@@ -143,7 +143,7 @@ export function matchTender(
     }
   }
   if (bonusMatchCount > 0) {
-    reasons.push(\`Matched \${bonusMatchCount} bonus keyword(s)\`);
+    reasons.push(`Matched ${bonusMatchCount} bonus keyword(s)`);
   }
 
   // Sector match (20 points)

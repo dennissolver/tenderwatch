@@ -18,7 +18,7 @@ export const processTender = inngest.createFunction(
       const result = await db.query.tenders.findFirst({
         where: eq(tenders.id, tenderId)
       });
-      if (!result) throw new Error(\`Tender not found: \${tenderId}\`);
+      if (!result) throw new Error(`Tender not found: ${tenderId}`);
       return result;
     });
 
@@ -76,14 +76,14 @@ export const processTender = inngest.createFunction(
 
     // Save matches and generate summaries
     for (const result of matchResults) {
-      await step.run(\`save-match-\${result.watchId}\`, async () => {
+      await step.run(`save-match-${result.watchId}`, async () => {
         // Get watch for summary context
         const watch = activeWatches.find(w => w.id === result.watchId)!;
-
+        
         // Generate personalised summary if Pro user
         // TODO: Check user plan
         let summary: string | undefined;
-
+        
         // Insert match
         await db.insert(matches).values({
           watchId: result.watchId,
