@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "inngest": "^3.0.0",
+    "drizzle-orm": "^0.29.0",
     "@tenderwatch/db": "workspace:*",
     "@tenderwatch/agent": "workspace:*",
     "@tenderwatch/processor": "workspace:*",
