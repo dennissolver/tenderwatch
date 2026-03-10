@@ -10,7 +10,25 @@ const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb"
+    },
+    serverComponentsExternalPackages: [
+      "playwright",
+      "playwright-core",
+      "@browserbasehq/sdk",
+      "libsodium-wrappers"
+    ]
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        "playwright": "commonjs playwright",
+        "playwright-core": "commonjs playwright-core",
+        "@browserbasehq/sdk": "commonjs @browserbasehq/sdk",
+        "libsodium-wrappers": "commonjs libsodium-wrappers",
+      });
     }
+    return config;
   }
 };
 

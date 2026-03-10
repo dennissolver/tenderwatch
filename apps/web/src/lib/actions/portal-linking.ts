@@ -3,7 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
-import { inngest } from "@tenderwatch/jobs";
+import { Inngest } from "inngest";
+
+const inngest = new Inngest({ id: "tenderwatch" });
 
 function generateId(): string {
   return crypto.randomUUID();
