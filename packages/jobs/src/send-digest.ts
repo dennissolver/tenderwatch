@@ -32,7 +32,7 @@ export const sendDigest = inngest.createFunction(
 
         if (userWatches.length === 0) return;
 
-        const watchIds = userWatches.map(w => w.id);
+        const watchIds = userWatches.map((w: any) => w.id);
         
         // Get unnotified matches from past 24 hours
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);

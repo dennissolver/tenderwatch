@@ -44,7 +44,7 @@ export const processTender = inngest.createFunction(
             buyerOrg: tender.buyerOrg || undefined,
             valueLow: tender.valueLow || undefined,
             valueHigh: tender.valueHigh || undefined,
-            closesAt: tender.closesAt || undefined,
+            closesAt: tender.closesAt ? new Date(tender.closesAt) : undefined,
             certificationsRequired: tender.certificationsRequired || []
           },
           {
@@ -78,7 +78,7 @@ export const processTender = inngest.createFunction(
     for (const result of matchResults) {
       await step.run(`save-match-${result.watchId}`, async () => {
         // Get watch for summary context
-        const watch = activeWatches.find(w => w.id === result.watchId)!;
+        const watch = activeWatches.find((w: any) => w.id === result.watchId)!;
         
         // Generate personalised summary if Pro user
         // TODO: Check user plan
@@ -89,10 +89,10 @@ export const processTender = inngest.createFunction(
           watchId: result.watchId,
           tenderId: tender.id,
           score: result.score,
-          tier: result.tier,
+          tier: result.tier as "strong" | "maybe" | "stretch",
           matchedKeywords: result.matchedKeywords,
           llmReasoning: result.reasoning,
-          personalisedSummary: summary
+          personalisedSummary: summary,
         });
       });
     }
