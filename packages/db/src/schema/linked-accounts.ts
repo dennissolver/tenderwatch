@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { users } from "./users";
 
@@ -31,6 +31,12 @@ export const linkedAccounts = pgTable("linked_accounts", {
   site: siteEnum("site").notNull(),
   siteUsername: text("site_username").notNull(),
   encryptedCredentials: text("encrypted_credentials").notNull(),
+
+  // Whether this account was registered via TenderWatch onboarding
+  registeredViaTenderwatch: boolean("registered_via_tenderwatch").default(false).notNull(),
+
+  // Timestamp when user granted TenderWatch permission to access this portal
+  consentGrantedAt: timestamp("consent_granted_at"),
 
   // Session data (cookies/tokens for maintaining login)
   sessionData: jsonb("session_data"),

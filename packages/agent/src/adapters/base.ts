@@ -34,6 +34,20 @@ export interface TenderDetail {
   sourceUrl: string;
 }
 
+export interface RegistrationParams {
+  email: string;
+  password: string;
+  companyName: string;
+  abn?: string;
+}
+
+export interface RegistrationResult {
+  success: boolean;
+  error?: string;
+  requiresVerification?: boolean;
+  sessionData?: Record<string, unknown>;
+}
+
 export abstract class BaseSiteAdapter {
   protected page: Page;
   protected browser: Browser;
@@ -48,6 +62,7 @@ export abstract class BaseSiteAdapter {
 
   abstract login(username: string, password: string): Promise<LoginResult>;
   abstract isLoggedIn(): Promise<boolean>;
+  abstract register(params: RegistrationParams): Promise<RegistrationResult>;
   abstract search(params: SearchParams): Promise<TenderListing[]>;
   abstract fetchTenderDetail(sourceId: string): Promise<TenderDetail>;
   abstract downloadDocument(url: string, filename: string): Promise<Buffer>;

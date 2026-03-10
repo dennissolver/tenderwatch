@@ -1,4 +1,4 @@
-import { BaseSiteAdapter, LoginResult, TenderListing, TenderDetail, SearchParams } from "./base";
+import { BaseSiteAdapter, LoginResult, RegistrationParams, RegistrationResult, TenderListing, TenderDetail, SearchParams } from "./base";
 
 export class AusTenderAdapter extends BaseSiteAdapter {
   get siteName() {
@@ -57,6 +57,69 @@ export class AusTenderAdapter extends BaseSiteAdapter {
       return logoutLink !== null;
     } catch {
       return false;
+    }
+  }
+
+  async register(params: RegistrationParams): Promise<RegistrationResult> {
+    try {
+      await this.navigateTo(`${this.siteUrl}/Account/Register`);
+
+      await this.page.waitForSelector("#Email", { timeout: 10000 });
+
+      await this.page.fill("#Email", params.email);
+      await this.page.fill("#Password", params.password);
+      await this.page.fill("#ConfirmPassword", params.password);
+
+      // Fill company details if fields exist
+      const companyField = await this.page.$("#CompanyName");
+      if (companyField) {
+        await companyField.fill(params.companyName);
+      }
+
+      if (params.abn) {
+        const abnField = await this.page.$("#ABN");
+        if (abnField) {
+          await abnField.fill(params.abn);
+        }
+      }
+
+      // Accept terms if checkbox exists
+      const termsCheckbox = await this.page.$('input[type="checkbox"][name*="terms" i], input[type="checkbox"][name*="agree" i]');
+      if (termsCheckbox) {
+        await termsCheckbox.check();
+      }
+
+      await this.page.click('button[type="submit"]');
+      await this.page.waitForTimeout(5000);
+
+      // Check for success — some portals redirect, some show confirmation
+      const currentUrl = this.page.url();
+      const hasError = await this.page.$(".validation-summary-errors, .error-message");
+
+      if (hasError) {
+        const errorText = await hasError.textContent();
+        return { success: false, error: errorText?.trim() || "Registration failed" };
+      }
+
+      // Check if email verification is required
+      const verificationMessage = await this.page.$('text=/verify|confirmation|check your email/i');
+      if (verificationMessage) {
+        return { success: true, requiresVerification: true };
+      }
+
+      // Try to extract session if already logged in after registration
+      const loggedIn = await this.isLoggedIn();
+      if (loggedIn) {
+        const cookies = await this.page.context().cookies();
+        return { success: true, sessionData: { cookies } };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Registration failed",
+      };
     }
   }
 
