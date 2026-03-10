@@ -15,7 +15,9 @@
     "@tenderwatch/agent": "workspace:*",
     "@tenderwatch/processor": "workspace:*",
     "@tenderwatch/crypto": "workspace:*",
-    "@tenderwatch/shared": "workspace:*"
+    "@tenderwatch/shared": "workspace:*",
+    "@browserbasehq/sdk": "^2.0.0",
+    "playwright": "^1.40.0"
   },
   "devDependencies": {
     "inngest-cli": "^0.28.0",

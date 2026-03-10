@@ -32,13 +32,13 @@ importers:
     dependencies:
       '@react-email/components':
         specifier: ^0.0.15
-        version: 0.0.15(@types/react@18.3.27)(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)
+        version: 0.0.15(@types/react@18.3.27)(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)
       react:
         specifier: ^18.2.0
         version: 18.3.1
       react-email:
         specifier: ^2.0.0
-        version: 2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7))
+        version: 2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7))
       resend:
         specifier: ^2.0.0
         version: 2.1.0
@@ -70,6 +70,9 @@ importers:
       '@tenderwatch/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@tenderwatch/jobs':
+        specifier: workspace:*
+        version: link:../../packages/jobs
       '@tenderwatch/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -82,6 +85,9 @@ importers:
       date-fns:
         specifier: ^3.0.0
         version: 3.6.0
+      inngest:
+        specifier: ^3.0.0
+        version: 3.47.0(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(hono@4.10.7)(next@14.2.35(@babel/core@7.24.5)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.9.3)(zod@3.25.76)
       lucide-react:
         specifier: ^0.300.0
         version: 0.300.0(react@18.3.1)
@@ -167,7 +173,7 @@ importers:
         version: link:../shared
       drizzle-orm:
         specifier: ^0.29.0
-        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@18.3.1)
+        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@19.2.3)
       stripe:
         specifier: ^14.0.0
         version: 14.25.0
@@ -199,7 +205,7 @@ importers:
         version: 2.3.1
       drizzle-orm:
         specifier: ^0.29.0
-        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@18.3.1)
+        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@19.2.3)
       postgres:
         specifier: ^3.4.0
         version: 3.4.7
@@ -213,6 +219,9 @@ importers:
 
   packages/jobs:
     dependencies:
+      '@browserbasehq/sdk':
+        specifier: ^2.0.0
+        version: 2.7.0
       '@tenderwatch/agent':
         specifier: workspace:*
         version: link:../agent
@@ -230,10 +239,13 @@ importers:
         version: link:../shared
       drizzle-orm:
         specifier: ^0.29.0
-        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@18.3.1)
+        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@19.2.3)
       inngest:
         specifier: ^3.0.0
-        version: 3.47.0(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(hono@4.10.7)(next@16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@18.3.1))(react@18.3.1))(typescript@5.9.3)(zod@3.25.76)
+        version: 3.47.0(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(hono@4.10.7)(next@16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(typescript@5.9.3)(zod@3.25.76)
+      playwright:
+        specifier: ^1.40.0
+        version: 1.57.0
     devDependencies:
       inngest-cli:
         specifier: ^0.28.0
@@ -371,6 +383,9 @@ packages:
 
   '@browserbasehq/sdk@1.5.0':
     resolution: {integrity: sha512-OxNuiynOeEuCqUz80Ved9LJ/GwgiuumqWm73uYLvpnW7LWp0x+Xefvc5ZvYQoew60kdDA7v6Snar8CgWcuBRgw==}
+
+  '@browserbasehq/sdk@2.7.0':
+    resolution: {integrity: sha512-1iwuj3fChplMq+S66M9tGb9ZXA4e7Vi8MjqQQ6/T6rzoAWLGfDnEAPbgTOU479o+Mi3of5/6YXk1oIHKTw0NBw==}
 
   '@bufbuild/protobuf@2.10.1':
     resolution: {integrity: sha512-ckS3+vyJb5qGpEYv/s1OebUHDi/xSNtfgw1wqKZo7MR9F2z+qXr0q5XagafAG/9O0QPVIUfST0smluYSTpYFkg==}
@@ -5782,6 +5797,18 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  '@browserbasehq/sdk@2.7.0':
+    dependencies:
+      '@types/node': 18.19.130
+      '@types/node-fetch': 2.6.13
+      abort-controller: 3.0.0
+      agentkeepalive: 4.6.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
   '@bufbuild/protobuf@2.10.1': {}
 
   '@emnapi/runtime@1.7.1':
@@ -7490,7 +7517,7 @@ snapshots:
     dependencies:
       react: 18.3.1
 
-  '@react-email/components@0.0.15(@types/react@18.3.27)(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)':
+  '@react-email/components@0.0.15(@types/react@18.3.27)(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)':
     dependencies:
       '@react-email/body': 0.0.7(react@18.3.1)
       '@react-email/button': 0.0.14(react@18.3.1)
@@ -7505,7 +7532,7 @@ snapshots:
       '@react-email/html': 0.0.7(react@18.3.1)
       '@react-email/img': 0.0.7(react@18.3.1)
       '@react-email/link': 0.0.7(react@18.3.1)
-      '@react-email/markdown': 0.0.8(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)
+      '@react-email/markdown': 0.0.8(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)
       '@react-email/preview': 0.0.8(react@18.3.1)
       '@react-email/render': 0.0.12
       '@react-email/row': 0.0.7(react@18.3.1)
@@ -7552,9 +7579,9 @@ snapshots:
     dependencies:
       react: 18.3.1
 
-  '@react-email/markdown@0.0.8(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)':
+  '@react-email/markdown@0.0.8(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)':
     dependencies:
-      md-to-react-email: 4.1.0(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)
+      md-to-react-email: 4.1.0(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1)
       react: 18.3.1
     transitivePeerDependencies:
       - react-email
@@ -7966,7 +7993,7 @@ snapshots:
   '@swc/core-win32-x64-msvc@1.3.101':
     optional: true
 
-  '@swc/core@1.3.101(@swc/helpers@0.5.5)':
+  '@swc/core@1.3.101(@swc/helpers@0.5.15)':
     dependencies:
       '@swc/counter': 0.1.3
       '@swc/types': 0.1.25
@@ -7981,7 +8008,7 @@ snapshots:
       '@swc/core-win32-arm64-msvc': 1.3.101
       '@swc/core-win32-ia32-msvc': 1.3.101
       '@swc/core-win32-x64-msvc': 1.3.101
-      '@swc/helpers': 0.5.5
+      '@swc/helpers': 0.5.15
 
   '@swc/counter@0.1.3': {}
 
@@ -8112,11 +8139,11 @@ snapshots:
     dependencies:
       '@types/node': 20.19.25
 
-  '@types/webpack@5.28.5(@swc/core@1.3.101(@swc/helpers@0.5.5))(esbuild@0.19.11)':
+  '@types/webpack@5.28.5(@swc/core@1.3.101(@swc/helpers@0.5.15))(esbuild@0.19.11)':
     dependencies:
       '@types/node': 20.19.25
       tapable: 2.3.0
-      webpack: 5.103.0(@swc/core@1.3.101(@swc/helpers@0.5.5))(esbuild@0.19.11)
+      webpack: 5.103.0(@swc/core@1.3.101(@swc/helpers@0.5.15))(esbuild@0.19.11)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
@@ -8754,13 +8781,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@18.3.1):
+  drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(@types/react@18.3.27)(postgres@3.4.7)(react@19.2.3):
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
       '@types/pg': 8.15.6
       '@types/react': 18.3.27
       postgres: 3.4.7
-      react: 18.3.1
+      react: 19.2.3
 
   dunder-proto@1.0.1:
     dependencies:
@@ -9458,7 +9485,7 @@ snapshots:
       - encoding
       - supports-color
 
-  inngest@3.47.0(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(hono@4.10.7)(next@16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@18.3.1))(react@18.3.1))(typescript@5.9.3)(zod@3.25.76):
+  inngest@3.47.0(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(hono@4.10.7)(next@14.2.35(@babel/core@7.24.5)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       '@bufbuild/protobuf': 2.10.1
       '@inngest/ai': 0.1.7
@@ -9487,7 +9514,43 @@ snapshots:
       zod: 3.25.76
     optionalDependencies:
       hono: 4.10.7
-      next: 16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@18.3.1))(react@18.3.1)
+      next: 14.2.35(@babel/core@7.24.5)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - '@opentelemetry/core'
+      - encoding
+      - supports-color
+
+  inngest@3.47.0(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(hono@4.10.7)(next@16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(typescript@5.9.3)(zod@3.25.76):
+    dependencies:
+      '@bufbuild/protobuf': 2.10.1
+      '@inngest/ai': 0.1.7
+      '@jpwilliams/waitgroup': 2.1.1
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/auto-instrumentations-node': 0.67.2(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))
+      '@opentelemetry/context-async-hooks': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/exporter-trace-otlp-http': 0.208.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation': 0.208.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-base': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.0.0
+      '@types/debug': 4.1.12
+      '@types/ms': 2.1.0
+      canonicalize: 1.0.8
+      chalk: 4.1.2
+      cross-fetch: 4.1.0
+      debug: 4.4.3
+      hash.js: 1.1.7
+      json-stringify-safe: 5.0.1
+      ms: 2.1.3
+      serialize-error-cjs: 0.1.4
+      strip-ansi: 5.2.0
+      temporal-polyfill: 0.2.5
+      ulid: 2.4.0
+      zod: 3.25.76
+    optionalDependencies:
+      hono: 4.10.7
+      next: 16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       typescript: 5.9.3
     transitivePeerDependencies:
       - '@opentelemetry/core'
@@ -9689,11 +9752,11 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  md-to-react-email@4.1.0(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1):
+  md-to-react-email@4.1.0(react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7)))(react@18.3.1):
     dependencies:
       marked: 7.0.4
       react: 18.3.1
-      react-email: 2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7))
+      react-email: 2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7))
 
   md5@2.3.0:
     dependencies:
@@ -9850,32 +9913,6 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
-
-  next@16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@18.3.1))(react@18.3.1):
-    dependencies:
-      '@next/env': 16.1.1
-      '@swc/helpers': 0.5.15
-      baseline-browser-mapping: 2.9.4
-      caniuse-lite: 1.0.30001759
-      postcss: 8.4.31
-      react: 18.3.1
-      react-dom: 19.2.3(react@18.3.1)
-      styled-jsx: 5.1.6(react@18.3.1)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 16.1.1
-      '@next/swc-darwin-x64': 16.1.1
-      '@next/swc-linux-arm64-gnu': 16.1.1
-      '@next/swc-linux-arm64-musl': 16.1.1
-      '@next/swc-linux-x64-gnu': 16.1.1
-      '@next/swc-linux-x64-musl': 16.1.1
-      '@next/swc-win32-arm64-msvc': 16.1.1
-      '@next/swc-win32-x64-msvc': 16.1.1
-      '@opentelemetry/api': 1.9.0
-      sharp: 0.34.5
-    transitivePeerDependencies:
-      - '@babel/core'
-      - babel-plugin-macros
-    optional: true
 
   next@16.1.1(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
@@ -10242,18 +10279,12 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
-  react-dom@19.2.3(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-      scheduler: 0.27.0
-    optional: true
-
   react-dom@19.2.3(react@19.2.3):
     dependencies:
       react: 19.2.3
       scheduler: 0.27.0
 
-  react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.5)(eslint@9.39.1(jiti@1.21.7)):
+  react-email@2.1.6(@opentelemetry/api@1.9.0)(@swc/helpers@0.5.15)(eslint@9.39.1(jiti@1.21.7)):
     dependencies:
       '@babel/core': 7.24.5
       '@babel/parser': 7.24.5
@@ -10263,10 +10294,10 @@ snapshots:
       '@radix-ui/react-slot': 1.1.0(@types/react@18.2.47)(react@18.3.1)
       '@radix-ui/react-toggle-group': 1.1.0(@types/react-dom@18.3.7(@types/react@18.2.47))(@types/react@18.2.47)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-tooltip': 1.1.1(@types/react-dom@18.3.7(@types/react@18.2.47))(@types/react@18.2.47)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@swc/core': 1.3.101(@swc/helpers@0.5.5)
+      '@swc/core': 1.3.101(@swc/helpers@0.5.15)
       '@types/react': 18.2.47
       '@types/react-dom': 18.3.7(@types/react@18.3.27)
-      '@types/webpack': 5.28.5(@swc/core@1.3.101(@swc/helpers@0.5.5))(esbuild@0.19.11)
+      '@types/webpack': 5.28.5(@swc/core@1.3.101(@swc/helpers@0.5.15))(esbuild@0.19.11)
       autoprefixer: 10.4.14(postcss@8.4.38)
       chalk: 4.1.2
       chokidar: 3.5.3
@@ -10684,12 +10715,6 @@ snapshots:
     optionalDependencies:
       '@babel/core': 7.24.5
 
-  styled-jsx@5.1.6(react@18.3.1):
-    dependencies:
-      client-only: 0.0.1
-      react: 18.3.1
-    optional: true
-
   styled-jsx@5.1.6(react@19.2.3):
     dependencies:
       client-only: 0.0.1
@@ -10822,16 +10847,16 @@ snapshots:
 
   temporal-spec@0.2.4: {}
 
-  terser-webpack-plugin@5.3.15(@swc/core@1.3.101(@swc/helpers@0.5.5))(esbuild@0.19.11)(webpack@5.103.0):
+  terser-webpack-plugin@5.3.15(@swc/core@1.3.101(@swc/helpers@0.5.15))(esbuild@0.19.11)(webpack@5.103.0):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       serialize-javascript: 6.0.2
       terser: 5.44.1
-      webpack: 5.103.0(@swc/core@1.3.101(@swc/helpers@0.5.5))(esbuild@0.19.11)
+      webpack: 5.103.0(@swc/core@1.3.101(@swc/helpers@0.5.15))(esbuild@0.19.11)
     optionalDependencies:
-      '@swc/core': 1.3.101(@swc/helpers@0.5.5)
+      '@swc/core': 1.3.101(@swc/helpers@0.5.15)
       esbuild: 0.19.11
 
   terser-webpack-plugin@5.3.15(webpack@5.103.0):
@@ -11099,7 +11124,7 @@ snapshots:
       - esbuild
       - uglify-js
 
-  webpack@5.103.0(@swc/core@1.3.101(@swc/helpers@0.5.5))(esbuild@0.19.11):
+  webpack@5.103.0(@swc/core@1.3.101(@swc/helpers@0.5.15))(esbuild@0.19.11):
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.8
@@ -11123,7 +11148,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.0
-      terser-webpack-plugin: 5.3.15(@swc/core@1.3.101(@swc/helpers@0.5.5))(esbuild@0.19.11)(webpack@5.103.0)
+      terser-webpack-plugin: 5.3.15(@swc/core@1.3.101(@swc/helpers@0.5.15))(esbuild@0.19.11)(webpack@5.103.0)
       watchpack: 2.4.4
       webpack-sources: 3.3.3
     transitivePeerDependencies:

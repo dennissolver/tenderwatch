@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, jsonb, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { watches } from "./watches";
 import { tenders } from "./tenders";
@@ -31,9 +31,6 @@ export const matches = pgTable("matches", {
 
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
-
-// Add missing import
-import { boolean } from "drizzle-orm/pg-core";
 
 export type Match = typeof matches.$inferSelect;
 export type NewMatch = typeof matches.$inferInsert;

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
+import { inngest } from "@tenderwatch/jobs";
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -32,8 +33,9 @@ export async function linkPortalAccount(
   //
   // For now, we store the linked account as "pending" and validate async via Inngest
 
+  const accountId = generateId();
   const { error } = await supabase.from("linked_accounts").insert({
-    id: generateId(),
+    id: accountId,
     user_id: user.id,
     site,
     site_username: username,
@@ -49,6 +51,18 @@ export async function linkPortalAccount(
     }
     return { success: false, error: error.message };
   }
+
+  // Fire Inngest event to validate credentials via Browserbase
+  await inngest.send({
+    name: "account/validate",
+    data: {
+      accountId,
+      username,
+      password,
+      site,
+      isRegistration: false,
+    },
+  });
 
   revalidatePath("/welcome");
   revalidatePath("/dashboard/accounts");
@@ -76,8 +90,9 @@ export async function registerPortalAccount(
   //
   // For now, we store as "pending" — registration will be processed async via Inngest
 
+  const accountId = generateId();
   const { error } = await supabase.from("linked_accounts").insert({
-    id: generateId(),
+    id: accountId,
     user_id: user.id,
     site,
     site_username: email,
@@ -93,6 +108,20 @@ export async function registerPortalAccount(
     }
     return { success: false, error: error.message };
   }
+
+  // Fire Inngest event to register + validate via Browserbase
+  await inngest.send({
+    name: "account/validate",
+    data: {
+      accountId,
+      username: email,
+      password,
+      site,
+      isRegistration: true,
+      companyName,
+      abn,
+    },
+  });
 
   revalidatePath("/welcome");
   revalidatePath("/dashboard/accounts");

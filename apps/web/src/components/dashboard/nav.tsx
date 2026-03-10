@@ -12,7 +12,7 @@ export function DashboardNav({ user }: { user: User }) {
           <span className="text-sm text-muted-foreground">
             {user.email}
           </span>
-          <form action="/auth/signout" method="post">
+          <form action="/api/auth/signout" method="post">
             <button
               type="submit"
               className="text-sm text-muted-foreground hover:text-foreground"
