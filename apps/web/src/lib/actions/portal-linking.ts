@@ -2,6 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import crypto from "crypto";
+
+function generateId(): string {
+  return crypto.randomUUID();
+}
 
 interface LinkPortalResult {
   success: boolean;
@@ -28,6 +33,7 @@ export async function linkPortalAccount(
   // For now, we store the linked account as "pending" and validate async via Inngest
 
   const { error } = await supabase.from("linked_accounts").insert({
+    id: generateId(),
     user_id: user.id,
     site,
     site_username: username,
@@ -71,6 +77,7 @@ export async function registerPortalAccount(
   // For now, we store as "pending" — registration will be processed async via Inngest
 
   const { error } = await supabase.from("linked_accounts").insert({
+    id: generateId(),
     user_id: user.id,
     site,
     site_username: email,
