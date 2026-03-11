@@ -169,3 +169,60 @@ export async function getLinkedAccounts() {
 
   return data || [];
 }
+
+export async function retryAllPendingAccounts(): Promise<{
+  success: boolean;
+  retriedCount: number;
+  error?: string;
+}> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, retriedCount: 0, error: "Not authenticated" };
+  }
+
+  // Fetch all pending or error accounts for this user
+  const { data: accounts, error } = await supabase
+    .from("linked_accounts")
+    .select("*")
+    .eq("user_id", user.id)
+    .in("status", ["pending", "error"]);
+
+  if (error) {
+    return { success: false, retriedCount: 0, error: error.message };
+  }
+
+  if (!accounts || accounts.length === 0) {
+    return { success: true, retriedCount: 0 };
+  }
+
+  // Reset all to pending and re-fire validation events
+  const events = [];
+  for (const account of accounts) {
+    const a = account as any;
+
+    // Reset status to pending
+    await supabase
+      .from("linked_accounts")
+      .update({ status: "pending", last_error: null, updated_at: new Date().toISOString() } as any)
+      .eq("id", a.id);
+
+    events.push({
+      name: "account/validate" as const,
+      data: {
+        accountId: a.id,
+        username: a.site_username,
+        password: "__USE_STORED__", // Signal to use already-encrypted credentials
+        site: a.site,
+        isRegistration: a.registered_via_tenderwatch || false,
+      },
+    });
+  }
+
+  // Send all events to Inngest in one batch
+  await inngest.send(events);
+
+  revalidatePath("/dashboard/accounts");
+  return { success: true, retriedCount: events.length };
+}

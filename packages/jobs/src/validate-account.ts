@@ -3,7 +3,7 @@ import { db } from "@tenderwatch/db";
 import { linkedAccounts } from "@tenderwatch/db";
 import { eq } from "drizzle-orm";
 import { getAdapter } from "@tenderwatch/agent";
-import { encrypt } from "@tenderwatch/crypto";
+import { encrypt, decrypt } from "@tenderwatch/crypto";
 import Browserbase from "@browserbasehq/sdk";
 import { chromium } from "playwright";
 
@@ -19,20 +19,42 @@ export const validateAccount = inngest.createFunction(
   async ({ event, step }) => {
     const { accountId, username, password, site, isRegistration, companyName, abn } = event.data;
 
-    // Step 1: Encrypt and store the credentials
-    const encryptedCreds = await step.run("encrypt-credentials", async () => {
-      return await encrypt(password);
+    const isRetry = password === "__USE_STORED__";
+
+    // Step 1: Resolve the plaintext password
+    const plainPassword = await step.run("resolve-credentials", async () => {
+      if (isRetry) {
+        // Retry: decrypt the already-stored credentials
+        const [account] = await db
+          .select({ encryptedCredentials: linkedAccounts.encryptedCredentials })
+          .from(linkedAccounts)
+          .where(eq(linkedAccounts.id, accountId));
+
+        if (!account?.encryptedCredentials || account.encryptedCredentials === "__PENDING_ENCRYPTION__") {
+          throw new Error("No stored credentials to retry — please re-link this account");
+        }
+
+        return await decrypt(account.encryptedCredentials);
+      }
+      return password;
     });
 
-    await step.run("store-encrypted-credentials", async () => {
-      await db
-        .update(linkedAccounts)
-        .set({
-          encryptedCredentials: encryptedCreds,
-          updatedAt: new Date(),
-        })
-        .where(eq(linkedAccounts.id, accountId));
-    });
+    // Step 1b: Encrypt and store credentials (skip if retry — already stored)
+    if (!isRetry) {
+      const encryptedCreds = await step.run("encrypt-credentials", async () => {
+        return await encrypt(plainPassword);
+      });
+
+      await step.run("store-encrypted-credentials", async () => {
+        await db
+          .update(linkedAccounts)
+          .set({
+            encryptedCredentials: encryptedCreds,
+            updatedAt: new Date(),
+          })
+          .where(eq(linkedAccounts.id, accountId));
+      });
+    }
 
     // Step 2: Connect to portal via Browserbase
     const result = await step.run("connect-to-portal", async () => {
@@ -51,11 +73,11 @@ export const validateAccount = inngest.createFunction(
       try {
         const adapter = getAdapter(site, browser as any, page);
 
-        if (isRegistration) {
-          // Register on the portal
+        if (isRegistration && !isRetry) {
+          // Register on the portal (only on first attempt, not retries)
           const regResult = await adapter.register({
             email: username,
-            password,
+            password: plainPassword,
             companyName: companyName || "",
             abn: abn || undefined,
           });
@@ -64,15 +86,14 @@ export const validateAccount = inngest.createFunction(
             return { success: false, error: regResult.error, sessionData: null };
           }
 
-          // If registration requires verification, mark appropriately
           if (regResult.requiresVerification) {
             return { success: true, requiresVerification: true, sessionData: regResult.sessionData };
           }
 
           return { success: true, sessionData: regResult.sessionData };
         } else {
-          // Login to existing account
-          const loginResult = await adapter.login(username, password);
+          // Login (used for non-registration and for retries of registered accounts)
+          const loginResult = await adapter.login(username, plainPassword);
 
           if (!loginResult.success) {
             return { success: false, error: loginResult.error, sessionData: null };

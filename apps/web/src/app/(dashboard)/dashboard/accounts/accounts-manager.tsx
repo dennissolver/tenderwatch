@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   CheckCircle2,
   AlertCircle,
@@ -9,12 +9,14 @@ import {
   Link2,
   Building2,
   Globe,
+  RefreshCw,
 } from "lucide-react";
 import { SITES } from "@tenderwatch/shared";
 import type { SiteKey } from "@tenderwatch/shared";
 import { ConsentPanel } from "@/components/onboarding/consent-panel";
 import { PortalLoginForm } from "@/components/onboarding/portal-login-form";
 import { PortalRegisterForm } from "@/components/onboarding/portal-register-form";
+import { retryAllPendingAccounts } from "@/lib/actions/portal-linking";
 
 interface PortalStatus {
   siteKey: string;
@@ -49,13 +51,58 @@ const STATUS_CONFIG = {
 
 export function AccountsManager({ portals, userEmail, userCompanyName, userAbn }: AccountsManagerProps) {
   const [expanded, setExpanded] = useState<ExpandedState>(null);
+  const [isPending, startTransition] = useTransition();
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
+
+  const pendingOrErrorCount = portals.filter(
+    (p) => p.status === "pending" || p.status === "error"
+  ).length;
 
   function handleConnect(siteKey: string, mode: "login" | "register") {
     setExpanded({ siteKey, mode: mode === "login" ? "consent-login" : "consent-register" });
   }
 
+  function handleRetryAll() {
+    setRetryMessage(null);
+    startTransition(async () => {
+      const result = await retryAllPendingAccounts();
+      if (result.success) {
+        setRetryMessage(
+          result.retriedCount > 0
+            ? `Retrying ${result.retriedCount} account${result.retriedCount > 1 ? "s" : ""}. This may take a few minutes.`
+            : "No pending or errored accounts to retry."
+        );
+        if (result.retriedCount > 0) {
+          setTimeout(() => window.location.reload(), 3000);
+        }
+      } else {
+        setRetryMessage(`Error: ${result.error}`);
+      }
+    });
+  }
+
   return (
     <div className="space-y-3">
+      {pendingOrErrorCount > 0 && (
+        <div className="flex items-center justify-between rounded-lg border border-yellow-200 bg-yellow-50 p-3">
+          <p className="text-sm text-yellow-800">
+            {pendingOrErrorCount} account{pendingOrErrorCount > 1 ? "s" : ""} pending or errored
+          </p>
+          <button
+            onClick={handleRetryAll}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-md bg-yellow-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-yellow-700 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isPending ? "animate-spin" : ""}`} />
+            {isPending ? "Retrying..." : "Retry All"}
+          </button>
+        </div>
+      )}
+      {retryMessage && (
+        <p className={`text-sm ${retryMessage.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>
+          {retryMessage}
+        </p>
+      )}
       {portals.map((portal) => {
         const config = STATUS_CONFIG[portal.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.not_linked;
         const StatusIcon = config.icon;
