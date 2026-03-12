@@ -13,13 +13,26 @@ export class VendorPanelAdapter extends BaseSiteAdapter {
     try {
       await this.navigateTo(`${this.siteUrl}/login`);
 
-      await this.page.waitForSelector('input[name="email"], input[type="email"], #email', { timeout: 10000 });
+      const pageTitle = await this.page.title();
+      const pageUrl = this.page.url();
 
-      const emailField = await this.page.$('input[name="email"], input[type="email"], #email');
-      if (emailField) await emailField.fill(username);
+      try {
+        await this.page.waitForSelector('input', { timeout: 15000 });
+      } catch {
+        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
+        return { success: false, error: `No form inputs on ${pageUrl} (title: "${pageTitle}"). HTML: ${bodySnippet.substring(0, 500)}` };
+      }
 
-      const passwordField = await this.page.$('input[name="password"], #password');
-      if (passwordField) await passwordField.fill(password);
+      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
+      const passwordField = await this.page.$('input[type="password"]');
+
+      if (!emailField || !passwordField) {
+        const inputs = await this.page.$$eval('input', els => els.map(el => ({ type: el.type, id: el.id, name: el.name, placeholder: el.placeholder })));
+        return { success: false, error: `Could not find login fields on ${pageUrl}. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
+      }
+
+      await emailField.fill(username);
+      await passwordField.fill(password);
 
       await this.page.click('button[type="submit"], input[type="submit"]');
       await this.page.waitForTimeout(3000);
@@ -55,18 +68,29 @@ export class VendorPanelAdapter extends BaseSiteAdapter {
     try {
       await this.navigateTo(`${this.siteUrl}/register`);
 
-      await this.page.waitForSelector('input[name="email"], input[type="email"], #email', { timeout: 10000 });
+      const pageUrl = this.page.url();
 
-      const emailField = await this.page.$('input[name="email"], input[type="email"], #email');
-      if (emailField) await emailField.fill(params.email);
+      try {
+        await this.page.waitForSelector('input', { timeout: 15000 });
+      } catch {
+        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
+        return { success: false, error: `No form inputs on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+      }
 
-      const passwordField = await this.page.$('input[name="password"], #password');
+      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
+      if (!emailField) {
+        const inputs = await this.page.$$eval('input', els => els.map(el => ({ type: el.type, id: el.id, name: el.name })));
+        return { success: false, error: `No email field on register page. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
+      }
+      await emailField.fill(params.email);
+
+      const passwordField = await this.page.$('input[type="password"]:first-of-type');
       if (passwordField) await passwordField.fill(params.password);
 
-      const confirmField = await this.page.$('input[name="password_confirmation"], input[name="confirmPassword"], #password_confirmation');
+      const confirmField = await this.page.$('input[name*="confirm" i], input[name*="password_confirmation" i], #password_confirmation');
       if (confirmField) await confirmField.fill(params.password);
 
-      const companyField = await this.page.$('input[name="company"], input[name="organisation"], #company');
+      const companyField = await this.page.$('input[name*="company" i], input[name*="organisation" i], #company');
       if (companyField) await companyField.fill(params.companyName);
 
       const termsCheckbox = await this.page.$('input[type="checkbox"]');
