@@ -1,4 +1,4 @@
-import type { Page, Browser } from "playwright";
+import type { Page, Browser } from "playwright-core";
 
 export interface LoginResult {
   success: boolean;

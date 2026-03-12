@@ -2,10 +2,6 @@ import { inngest } from "./client";
 import { db } from "@tenderwatch/db";
 import { linkedAccounts, tenders } from "@tenderwatch/db";
 import { eq } from "drizzle-orm";
-import { getAdapter } from "@tenderwatch/agent";
-import { decrypt } from "@tenderwatch/crypto";
-import Browserbase from "@browserbasehq/sdk";
-import { chromium } from "playwright";
 
 export const syncAccount = inngest.createFunction(
   {
@@ -30,11 +26,16 @@ export const syncAccount = inngest.createFunction(
 
     // Decrypt credentials
     const password = await step.run("decrypt-credentials", async () => {
+      const { decrypt } = await import("@tenderwatch/crypto");
       return decrypt(account.encryptedCredentials);
     });
 
     // Spin up browser and sync tenders
     const discoveredTenders = await step.run("sync-portal", async () => {
+      const Browserbase = (await import("@browserbasehq/sdk")).default;
+      const { chromium } = await import("playwright-core");
+      const { getAdapter } = await import("@tenderwatch/agent");
+
       const bb = new Browserbase({
         apiKey: process.env.BROWSERBASE_API_KEY!,
       });

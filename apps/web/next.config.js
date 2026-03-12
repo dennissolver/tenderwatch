@@ -5,14 +5,17 @@ const nextConfig = {
   transpilePackages: [
     "@tenderwatch/db",
     "@tenderwatch/billing",
-    "@tenderwatch/shared"
+    "@tenderwatch/shared",
+    "@tenderwatch/jobs",
+    "@tenderwatch/agent",
+    "@tenderwatch/crypto",
+    "@tenderwatch/processor"
   ],
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb"
     },
     serverComponentsExternalPackages: [
-      "playwright",
       "playwright-core",
       "@browserbasehq/sdk",
       "libsodium-wrappers"
@@ -22,7 +25,6 @@ const nextConfig = {
     if (isServer) {
       config.externals = config.externals || [];
       config.externals.push({
-        "playwright": "commonjs playwright",
         "playwright-core": "commonjs playwright-core",
         "@browserbasehq/sdk": "commonjs @browserbasehq/sdk",
         "libsodium-wrappers": "commonjs libsodium-wrappers",

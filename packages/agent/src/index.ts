@@ -9,7 +9,7 @@ export { WATendersAdapter } from "./adapters/wa-tenders";
 export { VendorPanelAdapter } from "./adapters/vendorpanel";
 export { TenderLinkAdapter } from "./adapters/tenderlink";
 
-import { Browser } from "playwright";
+import type { Browser } from "playwright-core";
 import { BaseSiteAdapter } from "./adapters/base";
 import { AusTenderAdapter } from "./adapters/austender";
 import { NSWeTenderAdapter } from "./adapters/nsw-etender";

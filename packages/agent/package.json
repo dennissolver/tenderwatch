@@ -11,7 +11,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.14.0",
     "@browserbasehq/sdk": "^1.0.0",
-    "playwright": "^1.40.0",
+    "playwright-core": "^1.40.0",
     "@tenderwatch/crypto": "workspace:*",
     "@tenderwatch/shared": "workspace:*"
   },

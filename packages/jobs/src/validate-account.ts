@@ -2,10 +2,6 @@ import { inngest } from "./client";
 import { db } from "@tenderwatch/db";
 import { linkedAccounts } from "@tenderwatch/db";
 import { eq } from "drizzle-orm";
-import { getAdapter } from "@tenderwatch/agent";
-import { encrypt, decrypt } from "@tenderwatch/crypto";
-import Browserbase from "@browserbasehq/sdk";
-import { chromium } from "playwright";
 
 export const validateAccount = inngest.createFunction(
   {
@@ -34,6 +30,7 @@ export const validateAccount = inngest.createFunction(
           throw new Error("No stored credentials to retry — please re-link this account");
         }
 
+        const { decrypt } = await import("@tenderwatch/crypto");
         return await decrypt(account.encryptedCredentials);
       }
       return password;
@@ -42,6 +39,7 @@ export const validateAccount = inngest.createFunction(
     // Step 1b: Encrypt and store credentials (skip if retry — already stored)
     if (!isRetry) {
       const encryptedCreds = await step.run("encrypt-credentials", async () => {
+        const { encrypt } = await import("@tenderwatch/crypto");
         return await encrypt(plainPassword);
       });
 
@@ -58,6 +56,10 @@ export const validateAccount = inngest.createFunction(
 
     // Step 2: Connect to portal via Browserbase
     const result = await step.run("connect-to-portal", async () => {
+      const Browserbase = (await import("@browserbasehq/sdk")).default;
+      const { chromium } = await import("playwright-core");
+      const { getAdapter } = await import("@tenderwatch/agent");
+
       const bb = new Browserbase({
         apiKey: process.env.BROWSERBASE_API_KEY!,
       });
