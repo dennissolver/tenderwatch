@@ -11,6 +11,7 @@ const nextConfig = {
     "@tenderwatch/crypto",
     "@tenderwatch/processor"
   ],
+  outputFileTracingRoot: require("path").join(__dirname, "../../"),
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb"
