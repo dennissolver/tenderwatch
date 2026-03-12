@@ -13,15 +13,32 @@ export class AusTenderAdapter extends BaseSiteAdapter {
     try {
       await this.navigateTo(`${this.siteUrl}/RegisteredUser/Login`);
 
-      // Wait for login form — try multiple possible selectors
-      await this.page.waitForSelector('input[type="email"], input[name*="Email" i], input[name*="email" i], #Email, #email', { timeout: 15000 });
+      // Capture page state for diagnostics
+      const pageTitle = await this.page.title();
+      const pageUrl = this.page.url();
 
-      // Fill credentials using flexible selectors
-      const emailInput = await this.page.$('input[type="email"], input[name*="Email" i], input[name*="email" i], #Email, #email');
-      const passwordInput = await this.page.$('input[type="password"], input[name*="Password" i], #Password, #password');
+      // Wait for any form input to appear (broad selector)
+      try {
+        await this.page.waitForSelector('input', { timeout: 15000 });
+      } catch {
+        // Capture HTML snippet for debugging if no inputs found
+        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
+        return {
+          success: false,
+          error: `No form inputs found on ${pageUrl} (title: "${pageTitle}"). HTML preview: ${bodySnippet.substring(0, 500)}`
+        };
+      }
+
+      // Try to find email/username field with broad selectors
+      const emailInput = await this.page.$('input[type="email"], input[name*="Email" i], input[name*="email" i], input[name*="user" i], input[id*="Email" i], input[id*="email" i], #Email, #email');
+      const passwordInput = await this.page.$('input[type="password"]');
 
       if (!emailInput || !passwordInput) {
-        return { success: false, error: "Could not find login form fields" };
+        // Capture all input fields for diagnostics
+        const inputs = await this.page.$$eval('input', els =>
+          els.map(el => ({ tag: el.tagName, type: el.type, id: el.id, name: el.name, placeholder: el.placeholder }))
+        );
+        return { success: false, error: `Could not find login fields. Page: ${pageUrl}. Inputs found: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
 
       await emailInput.fill(username);
@@ -71,15 +88,29 @@ export class AusTenderAdapter extends BaseSiteAdapter {
     try {
       await this.navigateTo(`${this.siteUrl}/RegisteredUser/Register`);
 
-      // Wait for registration form with flexible selectors
-      await this.page.waitForSelector('input[type="email"], input[name*="Email" i], #Email, #email', { timeout: 15000 });
+      const pageTitle = await this.page.title();
+      const pageUrl = this.page.url();
 
-      const emailInput = await this.page.$('input[type="email"], input[name*="Email" i], #Email, #email');
+      // Wait for any form input to appear
+      try {
+        await this.page.waitForSelector('input', { timeout: 15000 });
+      } catch {
+        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
+        return {
+          success: false,
+          error: `No form inputs on register page ${pageUrl} (title: "${pageTitle}"). HTML: ${bodySnippet.substring(0, 500)}`
+        };
+      }
+
+      const emailInput = await this.page.$('input[type="email"], input[name*="Email" i], input[name*="email" i], input[name*="user" i], input[id*="Email" i], input[id*="email" i], #Email, #email');
       const passwordInput = await this.page.$('input[type="password"]:first-of-type, input[name*="Password" i]:not([name*="Confirm"]):not([name*="confirm"]), #Password, #password');
       const confirmInput = await this.page.$('input[name*="Confirm" i], input[name*="confirm" i], #ConfirmPassword, #confirmPassword');
 
       if (!emailInput) {
-        return { success: false, error: "Could not find email field on registration form" };
+        const inputs = await this.page.$$eval('input', els =>
+          els.map(el => ({ tag: el.tagName, type: el.type, id: el.id, name: el.name, placeholder: el.placeholder }))
+        );
+        return { success: false, error: `Could not find email field on register page. Inputs found: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
 
       await emailInput.fill(params.email);
