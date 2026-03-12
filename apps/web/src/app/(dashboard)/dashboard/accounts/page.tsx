@@ -27,6 +27,7 @@ export default async function AccountsPage() {
     const account = (linkedAccounts || []).find((a: any) => a.site === key);
     return {
       siteKey: key,
+      accountId: account ? (account as any).id as string : null,
       name: SITES[key].name,
       description: SITES[key].description,
       region: SITES[key].region,

@@ -170,6 +170,30 @@ export async function getLinkedAccounts() {
   return data || [];
 }
 
+export async function removeLinkedAccount(
+  accountId: string
+): Promise<LinkPortalResult> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("linked_accounts")
+    .delete()
+    .eq("id", accountId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/accounts");
+  return { success: true };
+}
+
 export async function retryAllPendingAccounts(): Promise<{
   success: boolean;
   retriedCount: number;

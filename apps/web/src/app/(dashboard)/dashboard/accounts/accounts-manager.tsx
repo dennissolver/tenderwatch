@@ -10,16 +10,18 @@ import {
   Building2,
   Globe,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { SITES } from "@tenderwatch/shared";
 import type { SiteKey } from "@tenderwatch/shared";
 import { ConsentPanel } from "@/components/onboarding/consent-panel";
 import { PortalLoginForm } from "@/components/onboarding/portal-login-form";
 import { PortalRegisterForm } from "@/components/onboarding/portal-register-form";
-import { retryAllPendingAccounts } from "@/lib/actions/portal-linking";
+import { retryAllPendingAccounts, removeLinkedAccount } from "@/lib/actions/portal-linking";
 
 interface PortalStatus {
   siteKey: string;
+  accountId: string | null;
   name: string;
   description: string;
   region: string;
@@ -52,6 +54,7 @@ const STATUS_CONFIG = {
 export function AccountsManager({ portals, userEmail, userCompanyName, userAbn }: AccountsManagerProps) {
   const [expanded, setExpanded] = useState<ExpandedState>(null);
   const [isPending, startTransition] = useTransition();
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [retryMessage, setRetryMessage] = useState<string | null>(null);
 
   const pendingOrErrorCount = portals.filter(
@@ -60,6 +63,16 @@ export function AccountsManager({ portals, userEmail, userCompanyName, userAbn }
 
   function handleConnect(siteKey: string, mode: "login" | "register") {
     setExpanded({ siteKey, mode: mode === "login" ? "consent-login" : "consent-register" });
+  }
+
+  function handleRemove(accountId: string) {
+    if (!confirm("Remove this linked account? You can re-add it afterwards.")) return;
+    setRemovingId(accountId);
+    startTransition(async () => {
+      await removeLinkedAccount(accountId);
+      setRemovingId(null);
+      window.location.reload();
+    });
   }
 
   function handleRetryAll() {
@@ -154,11 +167,32 @@ export function AccountsManager({ portals, userEmail, userCompanyName, userAbn }
               )}
 
               {(portal.status === "expired" || portal.status === "error") && !isExpanded && (
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => handleConnect(portal.siteKey, "login")}
+                    className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Reconnect
+                  </button>
+                  <span className="text-muted-foreground">|</span>
+                  <button
+                    onClick={() => portal.accountId && handleRemove(portal.accountId)}
+                    disabled={removingId === portal.accountId}
+                    className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
+                  >
+                    {removingId === portal.accountId ? "Removing..." : "Remove"}
+                  </button>
+                </div>
+              )}
+
+              {(portal.status === "pending" || portal.status === "connected") && !isExpanded && portal.accountId && (
                 <button
-                  onClick={() => handleConnect(portal.siteKey, "login")}
-                  className="text-sm font-medium text-primary hover:text-primary/80 transition-colors shrink-0"
+                  onClick={() => handleRemove(portal.accountId!)}
+                  disabled={removingId === portal.accountId}
+                  className="text-sm font-medium text-muted-foreground hover:text-destructive transition-colors shrink-0 disabled:opacity-50"
+                  title="Remove linked account"
                 >
-                  Reconnect
+                  <Trash2 className="h-4 w-4" />
                 </button>
               )}
             </div>
