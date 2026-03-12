@@ -27,7 +27,7 @@ export class SATendersAdapter extends BaseSiteAdapter {
       const passwordField = await this.page.$('input[type="password"]');
 
       if (!emailField || !passwordField) {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map(el => ({ type: el.type, id: el.id, name: el.name, placeholder: el.placeholder })));
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el: HTMLInputElement) => ({ type: el.type, id: el.id, name: el.name, placeholder: el.placeholder })));
         return { success: false, error: `Could not find login fields on ${pageUrl}. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
 
@@ -79,7 +79,7 @@ export class SATendersAdapter extends BaseSiteAdapter {
 
       const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
       if (!emailField) {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map(el => ({ type: el.type, id: el.id, name: el.name })));
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el: HTMLInputElement) => ({ type: el.type, id: el.id, name: el.name })));
         return { success: false, error: `No email field on register page. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
       await emailField.fill(params.email);
