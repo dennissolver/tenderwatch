@@ -73,41 +73,65 @@ export class VICTendersAdapter extends BaseSiteAdapter {
 
       const pageUrl = this.page.url();
 
-      // VIC Tenders is a SPA — wait for password field which only appears after JS renders
+      // VIC Tenders has a multi-step registration wizard
+      // Step 1: Business details (legalName, businessName, ABN)
       try {
-        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
+        await this.page.waitForSelector('#legalName, input[name="business.legalName"]', { timeout: 20000 });
       } catch {
         const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name }))).catch(() => []);
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No password field on register page ${pageUrl}. Inputs: ${JSON.stringify(inputs).substring(0, 300)}. HTML: ${bodySnippet.substring(0, 300)}` };
+        return { success: false, error: `VIC register step 1: no business fields found. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
 
-      const emailField = await this.page.$('input[type="email"], input[type="text"], input[name*="email" i], input[id*="email" i], #email');
-      if (!emailField) {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name })));
-        return { success: false, error: `No email field on register page. Visible inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
+      // Fill business details
+      const legalNameField = await this.page.$('#legalName, input[name="business.legalName"]');
+      if (legalNameField) await legalNameField.fill(params.companyName);
+
+      const businessNameField = await this.page.$('#businessName, input[name="business.name"]');
+      if (businessNameField) await businessNameField.fill(params.companyName);
+
+      // Fill ABN if available
+      if (params.abn) {
+        const abnField = await this.page.$('#identifiers0\\.identifier, input[name="identifiers[0].identifier"]');
+        if (abnField) await abnField.fill(params.abn);
       }
-      await emailField.fill(params.email);
 
-      const passwordField = await this.page.$('input[type="password"]:first-of-type');
-      if (passwordField) await passwordField.fill(params.password);
+      // Submit step 1 — look for Next/Continue/Submit button
+      const nextButton = await this.page.$('button[type="submit"], input[type="submit"], button:has-text("Next"), button:has-text("Continue"), a:has-text("Next")');
+      if (nextButton) await nextButton.click();
+      await this.page.waitForTimeout(5000);
 
-      const confirmField = await this.page.$('input[name*="confirm" i], input[name*="Confirm" i], #confirmPassword');
-      if (confirmField) await confirmField.fill(params.password);
+      // Step 2: Check what page we're on now — might have user details / credentials
+      // Capture current state for diagnostics
+      const step2Inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name }))).catch(() => []);
 
-      const companyField = await this.page.$('input[name*="company" i], input[name*="organisation" i], #companyName');
-      if (companyField) await companyField.fill(params.companyName);
+      // Try to find email field on this or subsequent pages
+      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
+      if (emailField) await emailField.fill(params.email);
+
+      // Try to find password field
+      const passwordField = await this.page.$('input[type="password"]');
+      if (passwordField) {
+        await passwordField.fill(params.password);
+        // Look for confirm password
+        const allPasswords = await this.page.$$('input[type="password"]');
+        if (allPasswords.length > 1) {
+          await allPasswords[1].fill(params.password);
+        }
+      }
 
       const termsCheckbox = await this.page.$('input[type="checkbox"]');
       if (termsCheckbox) await termsCheckbox.check();
 
-      await this.page.click('button[type="submit"], input[type="submit"]');
+      // Submit the form
+      const submitButton = await this.page.$('button[type="submit"], input[type="submit"], button:has-text("Register"), button:has-text("Submit"), button:has-text("Create")');
+      if (submitButton) await submitButton.click();
       await this.page.waitForTimeout(5000);
 
-      const hasError = await this.page.$(".error, .alert-danger, .field-validation-error");
+      // Check for errors
+      const hasError = await this.page.$(".error, .alert-danger, .field-validation-error, .alert-error");
       if (hasError) {
         const errorText = await hasError.textContent();
-        return { success: false, error: errorText?.trim() || "Registration failed" };
+        return { success: false, error: `VIC register error: ${errorText?.trim()}. Step2 inputs were: ${JSON.stringify(step2Inputs).substring(0, 300)}` };
       }
 
       const verificationMessage = await this.page.$('text=/verify|confirmation|check your email/i');
