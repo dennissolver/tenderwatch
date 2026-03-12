@@ -21,7 +21,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
       try {
         await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
       } catch {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el: HTMLInputElement) => ({ type: el.type, id: el.id, name: el.name, placeholder: el.placeholder }))).catch(() => []);
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name, placeholder: (el as any).placeholder }))).catch(() => []);
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
         return {
           success: false,
@@ -36,7 +36,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
       if (!emailInput || !passwordInput) {
         // Capture all input fields for diagnostics
         const inputs = await this.page.$$eval('input', els =>
-          els.map((el: HTMLInputElement) => ({ tag: el.tagName, type: el.type, id: el.id, name: el.name, placeholder: el.placeholder }))
+          els.map((el) => ({ tag: el.tagName, type: (el as any).type, id: el.id, name: (el as any).name, placeholder: (el as any).placeholder }))
         );
         return { success: false, error: `Could not find login fields. Page: ${pageUrl}. Inputs found: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
@@ -95,7 +95,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
       try {
         await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
       } catch {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el: HTMLInputElement) => ({ type: el.type, id: el.id, name: el.name }))).catch(() => []);
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name }))).catch(() => []);
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
         return {
           success: false,
@@ -109,7 +109,7 @@ export class AusTenderAdapter extends BaseSiteAdapter {
 
       if (!emailInput) {
         const inputs = await this.page.$$eval('input', els =>
-          els.map((el: HTMLInputElement) => ({ tag: el.tagName, type: el.type, id: el.id, name: el.name, placeholder: el.placeholder }))
+          els.map((el) => ({ tag: el.tagName, type: (el as any).type, id: el.id, name: (el as any).name, placeholder: (el as any).placeholder }))
         );
         return { success: false, error: `Could not find email field on register page. Inputs found: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
