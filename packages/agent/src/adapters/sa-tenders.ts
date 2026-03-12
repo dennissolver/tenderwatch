@@ -17,17 +17,17 @@ export class SATendersAdapter extends BaseSiteAdapter {
       const pageUrl = this.page.url();
 
       try {
-        await this.page.waitForSelector('input', { timeout: 15000 });
+        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
       } catch {
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No form inputs on ${pageUrl} (title: "${pageTitle}"). HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `No password field on ${pageUrl} (title: "${pageTitle}"). HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
       const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[name*="user" i], input[id*="email" i], #email, #username');
       const passwordField = await this.page.$('input[type="password"]');
 
       if (!emailField || !passwordField) {
-        const inputs = await this.page.$$eval('input', els => els.map(el => ({ type: el.type, id: el.id, name: el.name, placeholder: el.placeholder })));
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map(el => ({ type: el.type, id: el.id, name: el.name, placeholder: el.placeholder })));
         return { success: false, error: `Could not find login fields on ${pageUrl}. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
 
@@ -71,15 +71,15 @@ export class SATendersAdapter extends BaseSiteAdapter {
       const pageUrl = this.page.url();
 
       try {
-        await this.page.waitForSelector('input', { timeout: 15000 });
+        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
       } catch {
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No form inputs on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `No password field on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
       const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
       if (!emailField) {
-        const inputs = await this.page.$$eval('input', els => els.map(el => ({ type: el.type, id: el.id, name: el.name })));
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map(el => ({ type: el.type, id: el.id, name: el.name })));
         return { success: false, error: `No email field on register page. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
       await emailField.fill(params.email);

@@ -17,15 +17,15 @@ export class AusTenderAdapter extends BaseSiteAdapter {
       const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
 
-      // Wait for any form input to appear (broad selector)
+      // Wait for password field — handles SPAs that render forms via JS
       try {
-        await this.page.waitForSelector('input', { timeout: 15000 });
+        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
       } catch {
-        // Capture HTML snippet for debugging if no inputs found
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map(el => ({ type: el.type, id: el.id, name: el.name, placeholder: el.placeholder }))).catch(() => []);
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
         return {
           success: false,
-          error: `No form inputs found on ${pageUrl} (title: "${pageTitle}"). HTML preview: ${bodySnippet.substring(0, 500)}`
+          error: `No password field on ${pageUrl} (title: "${pageTitle}"). Inputs: ${JSON.stringify(inputs).substring(0, 300)}. HTML: ${bodySnippet.substring(0, 300)}`
         };
       }
 
@@ -91,14 +91,15 @@ export class AusTenderAdapter extends BaseSiteAdapter {
       const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
 
-      // Wait for any form input to appear
+      // Wait for password field — handles SPAs that render forms via JS
       try {
-        await this.page.waitForSelector('input', { timeout: 15000 });
+        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
       } catch {
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map(el => ({ type: el.type, id: el.id, name: el.name }))).catch(() => []);
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
         return {
           success: false,
-          error: `No form inputs on register page ${pageUrl} (title: "${pageTitle}"). HTML: ${bodySnippet.substring(0, 500)}`
+          error: `No password field on register page ${pageUrl}. Inputs: ${JSON.stringify(inputs).substring(0, 300)}. HTML: ${bodySnippet.substring(0, 300)}`
         };
       }
 
