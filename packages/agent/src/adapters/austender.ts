@@ -11,20 +11,27 @@ export class AusTenderAdapter extends BaseSiteAdapter {
 
   async login(username: string, password: string): Promise<LoginResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/Account/Login`);
+      await this.navigateTo(`${this.siteUrl}/RegisteredUser/Login`);
 
-      // Wait for login form
-      await this.page.waitForSelector("#Email", { timeout: 10000 });
+      // Wait for login form — try multiple possible selectors
+      await this.page.waitForSelector('input[type="email"], input[name*="Email" i], input[name*="email" i], #Email, #email', { timeout: 15000 });
 
-      // Fill credentials
-      await this.page.fill("#Email", username);
-      await this.page.fill("#Password", password);
+      // Fill credentials using flexible selectors
+      const emailInput = await this.page.$('input[type="email"], input[name*="Email" i], input[name*="email" i], #Email, #email');
+      const passwordInput = await this.page.$('input[type="password"], input[name*="Password" i], #Password, #password');
+
+      if (!emailInput || !passwordInput) {
+        return { success: false, error: "Could not find login form fields" };
+      }
+
+      await emailInput.fill(username);
+      await passwordInput.fill(password);
 
       // Submit
-      await this.page.click('button[type="submit"]');
+      await this.page.click('button[type="submit"], input[type="submit"]');
 
       // Wait for redirect or error
-      await this.page.waitForTimeout(3000);
+      await this.page.waitForTimeout(5000);
 
       // Check if logged in
       const loggedIn = await this.isLoggedIn();
@@ -62,13 +69,22 @@ export class AusTenderAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/Account/Register`);
+      await this.navigateTo(`${this.siteUrl}/RegisteredUser/Register`);
 
-      await this.page.waitForSelector("#Email", { timeout: 10000 });
+      // Wait for registration form with flexible selectors
+      await this.page.waitForSelector('input[type="email"], input[name*="Email" i], #Email, #email', { timeout: 15000 });
 
-      await this.page.fill("#Email", params.email);
-      await this.page.fill("#Password", params.password);
-      await this.page.fill("#ConfirmPassword", params.password);
+      const emailInput = await this.page.$('input[type="email"], input[name*="Email" i], #Email, #email');
+      const passwordInput = await this.page.$('input[type="password"]:first-of-type, input[name*="Password" i]:not([name*="Confirm"]):not([name*="confirm"]), #Password, #password');
+      const confirmInput = await this.page.$('input[name*="Confirm" i], input[name*="confirm" i], #ConfirmPassword, #confirmPassword');
+
+      if (!emailInput) {
+        return { success: false, error: "Could not find email field on registration form" };
+      }
+
+      await emailInput.fill(params.email);
+      if (passwordInput) await passwordInput.fill(params.password);
+      if (confirmInput) await confirmInput.fill(params.password);
 
       // Fill company details if fields exist
       const companyField = await this.page.$("#CompanyName");
