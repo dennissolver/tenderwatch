@@ -13,7 +13,7 @@ export const validateAccount = inngest.createFunction(
   },
   { event: "account/validate" },
   async ({ event, step }) => {
-    const { accountId, username, password, site, isRegistration, companyName, abn } = event.data;
+    const { accountId, username, password, site, isRegistration, companyName, abn, acn, legalName, businessName, orgType, addressLine1, addressLine2, city, state, postcode, country, phone, contactFirstName, contactLastName, contactPosition } = event.data;
 
     const isRetry = password === "__USE_STORED__";
 
@@ -82,6 +82,20 @@ export const validateAccount = inngest.createFunction(
             password: plainPassword,
             companyName: companyName || "",
             abn: abn || undefined,
+            acn: acn || undefined,
+            legalName: legalName || undefined,
+            businessName: businessName || undefined,
+            orgType: orgType || undefined,
+            addressLine1: addressLine1 || undefined,
+            addressLine2: addressLine2 || undefined,
+            city: city || undefined,
+            state: state || undefined,
+            postcode: postcode || undefined,
+            country: country || undefined,
+            phone: phone || undefined,
+            contactFirstName: contactFirstName || undefined,
+            contactLastName: contactLastName || undefined,
+            contactPosition: contactPosition || undefined,
           });
 
           if (!regResult.success) {

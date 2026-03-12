@@ -39,6 +39,20 @@ export interface RegistrationParams {
   password: string;
   companyName: string;
   abn?: string;
+  acn?: string;
+  legalName?: string;
+  businessName?: string;
+  orgType?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+  phone?: string;
+  contactFirstName?: string;
+  contactLastName?: string;
+  contactPosition?: string;
 }
 
 export interface RegistrationResult {

@@ -76,7 +76,23 @@ export async function registerPortalAccount(
   email: string,
   password: string,
   companyName: string,
-  abn?: string
+  profileData?: {
+    abn?: string;
+    acn?: string;
+    legalName?: string;
+    businessName?: string;
+    orgType?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+    phone?: string;
+    contactFirstName?: string;
+    contactLastName?: string;
+    contactPosition?: string;
+  }
 ): Promise<LinkPortalResult> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -121,7 +137,7 @@ export async function registerPortalAccount(
       site,
       isRegistration: true,
       companyName,
-      abn,
+      ...profileData,
     },
   });
 
@@ -153,6 +169,52 @@ export async function completeOnboarding(): Promise<LinkPortalResult> {
   }
 
   revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function updateProfile(data: {
+  legalName?: string;
+  businessName?: string;
+  abn?: string;
+  acn?: string;
+  orgType?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+  phone?: string;
+  contactFirstName?: string;
+  contactLastName?: string;
+  contactPosition?: string;
+}): Promise<LinkPortalResult> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({
+      ...Object.fromEntries(
+        Object.entries(data).map(([k, v]) => [
+          k.replace(/([A-Z])/g, '_$1').toLowerCase(),
+          v
+        ])
+      ),
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq("id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/welcome");
+  revalidatePath("/dashboard/accounts");
   return { success: true };
 }
 

@@ -31,11 +31,30 @@ interface PortalStatus {
   siteUsername: string | null;
 }
 
+interface ProfileData {
+  abn?: string;
+  acn?: string;
+  legalName?: string;
+  businessName?: string;
+  orgType?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+  phone?: string;
+  contactFirstName?: string;
+  contactLastName?: string;
+  contactPosition?: string;
+}
+
 interface AccountsManagerProps {
   portals: PortalStatus[];
   userEmail: string;
   userCompanyName: string;
   userAbn: string;
+  profileData?: ProfileData;
 }
 
 type ExpandedState = {
@@ -51,7 +70,7 @@ const STATUS_CONFIG = {
   not_linked: { icon: Link2, label: "Not Connected", color: "text-muted-foreground", bg: "border" },
 } as const;
 
-export function AccountsManager({ portals, userEmail, userCompanyName, userAbn }: AccountsManagerProps) {
+export function AccountsManager({ portals, userEmail, userCompanyName, userAbn, profileData }: AccountsManagerProps) {
   const [expanded, setExpanded] = useState<ExpandedState>(null);
   const [isPending, startTransition] = useTransition();
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -231,6 +250,7 @@ export function AccountsManager({ portals, userEmail, userCompanyName, userAbn }
                     prefillEmail={userEmail}
                     prefillCompanyName={userCompanyName}
                     prefillAbn={userAbn}
+                    profileData={profileData}
                     onSuccess={() => {
                       setExpanded(null);
                       window.location.reload();

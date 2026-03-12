@@ -10,6 +10,24 @@ import { SITES } from "@tenderwatch/shared";
 
 type StepPhase = "choice" | "consent-login" | "login" | "consent-register" | "register" | "connected";
 
+interface ProfileData {
+  abn?: string;
+  acn?: string;
+  legalName?: string;
+  businessName?: string;
+  orgType?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+  phone?: string;
+  contactFirstName?: string;
+  contactLastName?: string;
+  contactPosition?: string;
+}
+
 interface PortalStepProps {
   siteKey: SiteKey;
   stepNumber: number;
@@ -17,6 +35,7 @@ interface PortalStepProps {
   userEmail: string;
   userCompanyName: string;
   userAbn: string;
+  profileData?: ProfileData;
   onComplete: (status: "connected" | "skipped") => void;
 }
 
@@ -27,6 +46,7 @@ export function PortalStep({
   userEmail,
   userCompanyName,
   userAbn,
+  profileData,
   onComplete,
 }: PortalStepProps) {
   const [phase, setPhase] = useState<StepPhase>("choice");
@@ -138,6 +158,7 @@ export function PortalStep({
           prefillEmail={userEmail}
           prefillCompanyName={userCompanyName}
           prefillAbn={userAbn}
+          profileData={profileData}
           onSuccess={() => setPhase("connected")}
           onBack={() => setPhase("choice")}
         />

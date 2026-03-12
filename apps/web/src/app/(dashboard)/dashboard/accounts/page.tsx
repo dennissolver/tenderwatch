@@ -18,7 +18,7 @@ export default async function AccountsPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("email, company_name, abn")
+    .select("email, company_name, abn, acn, legal_name, business_name, org_type, address_line1, address_line2, city, state, postcode, country, phone, contact_first_name, contact_last_name, contact_position")
     .eq("id", user.id)
     .single();
 
@@ -53,6 +53,23 @@ export default async function AccountsPage() {
         userEmail={user.email || ""}
         userCompanyName={(profile as any)?.company_name || ""}
         userAbn={(profile as any)?.abn || ""}
+        profileData={{
+          abn: (profile as any)?.abn || "",
+          acn: (profile as any)?.acn || "",
+          legalName: (profile as any)?.legal_name || "",
+          businessName: (profile as any)?.business_name || "",
+          orgType: (profile as any)?.org_type || "",
+          addressLine1: (profile as any)?.address_line1 || "",
+          addressLine2: (profile as any)?.address_line2 || "",
+          city: (profile as any)?.city || "",
+          state: (profile as any)?.state || "",
+          postcode: (profile as any)?.postcode || "",
+          country: (profile as any)?.country || "Australia",
+          phone: (profile as any)?.phone || "",
+          contactFirstName: (profile as any)?.contact_first_name || "",
+          contactLastName: (profile as any)?.contact_last_name || "",
+          contactPosition: (profile as any)?.contact_position || "",
+        }}
       />
     </div>
   );

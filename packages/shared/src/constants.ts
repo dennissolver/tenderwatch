@@ -33,7 +33,7 @@ export const SITES = {
     description: "Victorian government purchasing and tenders",
     region: "Victoria" as const,
     registrationUrl: "https://www.tenders.vic.gov.au/register",
-    requiredFields: ["email", "password", "companyName"] as const,
+    requiredFields: ["email", "password", "companyName", "legalName", "businessName"] as const,
   },
   sa_tenders: {
     name: "SA Tenders",
@@ -51,16 +51,7 @@ export const SITES = {
     description: "Western Australian government tenders",
     region: "Western Australia" as const,
     registrationUrl: "https://www.tenders.wa.gov.au/watenders/registration/newOrganisation.do",
-    requiredFields: ["email", "password", "companyName", "abn"] as const,
-  },
-  vendorpanel: {
-    name: "VendorPanel",
-    url: "https://www.vendorpanel.com",
-    hasApi: false,
-    description: "Local government and enterprise procurement panels",
-    region: "National" as const,
-    registrationUrl: "https://www.vendorpanel.com/register",
-    requiredFields: ["email", "password", "companyName"] as const,
+    requiredFields: ["email", "password", "companyName", "abn", "acn", "legalName", "businessName", "orgType", "addressLine1", "city", "state", "postcode", "country", "phone", "contactFirstName", "contactLastName", "contactPosition"] as const,
   },
   tenderlink: {
     name: "TenderLink",
@@ -80,7 +71,6 @@ export const PORTAL_ORDER: SiteKey[] = [
   "vic_tenders",
   "sa_tenders",
   "wa_tenders",
-  "vendorpanel",
   "tenderlink",
 ];
 

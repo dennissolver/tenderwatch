@@ -6,7 +6,6 @@ export { QLDQTendersAdapter } from "./adapters/qld-qtenders";
 export { VICTendersAdapter } from "./adapters/vic-tenders";
 export { SATendersAdapter } from "./adapters/sa-tenders";
 export { WATendersAdapter } from "./adapters/wa-tenders";
-export { VendorPanelAdapter } from "./adapters/vendorpanel";
 export { TenderLinkAdapter } from "./adapters/tenderlink";
 
 import type { Browser } from "playwright-core";
@@ -17,7 +16,6 @@ import { QLDQTendersAdapter } from "./adapters/qld-qtenders";
 import { VICTendersAdapter } from "./adapters/vic-tenders";
 import { SATendersAdapter } from "./adapters/sa-tenders";
 import { WATendersAdapter } from "./adapters/wa-tenders";
-import { VendorPanelAdapter } from "./adapters/vendorpanel";
 import { TenderLinkAdapter } from "./adapters/tenderlink";
 
 export function getAdapter(site: string, browser: Browser, page: any): BaseSiteAdapter {
@@ -34,11 +32,9 @@ export function getAdapter(site: string, browser: Browser, page: any): BaseSiteA
       return new SATendersAdapter(browser, page);
     case "wa_tenders":
       return new WATendersAdapter(browser, page);
-    case "vendorpanel":
-      return new VendorPanelAdapter(browser, page);
     case "tenderlink":
       return new TenderLinkAdapter(browser, page);
     default:
-      throw new Error(`Unknown site: ${site}. Supported: austender, nsw_etender, qld_qtenders, vic_tenders, sa_tenders, wa_tenders, vendorpanel, tenderlink`);
+      throw new Error(`Unknown site: ${site}. Supported: austender, nsw_etender, qld_qtenders, vic_tenders, sa_tenders, wa_tenders, tenderlink`);
   }
 }

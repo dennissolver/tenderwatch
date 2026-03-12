@@ -4,6 +4,24 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { registerPortalAccount } from "@/lib/actions/portal-linking";
 
+interface ProfileData {
+  abn?: string;
+  acn?: string;
+  legalName?: string;
+  businessName?: string;
+  orgType?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+  phone?: string;
+  contactFirstName?: string;
+  contactLastName?: string;
+  contactPosition?: string;
+}
+
 interface PortalRegisterFormProps {
   siteKey: string;
   portalName: string;
@@ -11,6 +29,7 @@ interface PortalRegisterFormProps {
   prefillEmail: string;
   prefillCompanyName: string;
   prefillAbn: string;
+  profileData?: ProfileData;
   onSuccess: () => void;
   onBack: () => void;
 }
@@ -22,6 +41,7 @@ export function PortalRegisterForm({
   prefillEmail,
   prefillCompanyName,
   prefillAbn,
+  profileData,
   onSuccess,
   onBack,
 }: PortalRegisterFormProps) {
@@ -45,7 +65,7 @@ export function PortalRegisterForm({
       email,
       password,
       companyName,
-      needsAbn ? abn : undefined
+      { abn: needsAbn ? abn : undefined, ...profileData }
     );
 
     if (result.success) {
