@@ -14,7 +14,7 @@ export const SITES = {
     hasApi: true,
     description: "New South Wales government procurement",
     region: "New South Wales" as const,
-    registrationUrl: "https://buy.nsw.gov.au/supplier/signup",
+    registrationUrl: "https://suppliers.buy.nsw.gov.au/login/signup/supplier",
     requiredFields: ["email", "password", "companyName", "abn"] as const,
   },
   qld_qtenders: {
@@ -23,7 +23,7 @@ export const SITES = {
     hasApi: false,
     description: "Queensland government tenders",
     region: "Queensland" as const,
-    registrationUrl: "https://qtenders.hpw.qld.gov.au",
+    registrationUrl: "https://www.supply.qld.gov.au/",
     requiredFields: ["email", "password", "companyName", "abn"] as const,
   },
   vic_tenders: {

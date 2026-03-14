@@ -66,32 +66,32 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      // QTenders is now a Blazor WebAssembly SPA — wait for it to fully load
-      await this.navigateTo(`${this.siteUrl}`);
+      // QLD is migrating from QTenders Blazor SPA to VendorPanel-based Supplier Portal
+      await this.navigateTo("https://www.supply.qld.gov.au/");
 
       const pageUrl = this.page.url();
 
-      // Wait for Blazor app to initialize
+      // Wait for page to load and look for register/signup options
       try {
-        await this.page.waitForSelector('input[type="password"], a[href*="register" i], button:has-text("Register"), a:has-text("Register"), a:has-text("Sign up")', { timeout: 30000 });
+        await this.page.waitForSelector('input[type="password"], input[type="email"], a[href*="register" i], a[href*="signup" i], button:has-text("Register"), a:has-text("Register"), a:has-text("Sign up"), a:has-text("Create account")', { timeout: 20000 });
       } catch {
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `QTenders Blazor SPA did not load registration form at ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `No registration options found on QLD Supplier Portal at ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
-      // Try to find and click a register link if the SPA loaded a landing page
-      const registerLink = await this.page.$('a[href*="register" i], a:has-text("Register"), a:has-text("Sign up"), button:has-text("Register")');
+      // Click register/signup link if on landing page
+      const registerLink = await this.page.$('a[href*="register" i], a[href*="signup" i], a:has-text("Register"), a:has-text("Sign up"), a:has-text("Create account"), button:has-text("Register")');
       if (registerLink) {
         await registerLink.click();
         await this.page.waitForTimeout(3000);
       }
 
-      // Now wait for registration form fields
+      // Wait for registration form fields
       try {
-        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
+        await this.page.waitForSelector('input[type="password"], input[type="email"]', { timeout: 20000 });
       } catch {
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No password field on QTenders register page ${this.page.url()}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `No registration form on QLD Supplier Portal ${this.page.url()}. HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
       const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');

@@ -12,7 +12,7 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
   async login(username: string, password: string): Promise<LoginResult> {
     try {
       // buy.nsw Supplier Hub — login page
-      await this.navigateTo(`${this.siteUrl}/supplier/login`);
+      await this.navigateTo("https://suppliers.buy.nsw.gov.au/login");
 
       const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
@@ -68,7 +68,7 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
       // buy.nsw Supplier Hub signup
-      await this.navigateTo(`${this.siteUrl}/supplier/signup`);
+      await this.navigateTo("https://suppliers.buy.nsw.gov.au/login/signup/supplier");
 
       const pageUrl = this.page.url();
 
