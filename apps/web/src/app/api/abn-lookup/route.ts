@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const ABR_GUID = process.env.ABR_GUID || "";
+
 /**
- * Scrapes the ABR public page to look up ABN details.
- * No API key / GUID required — uses the public HTML view.
+ * ABN lookup via ABR's official JSON API (requires registered GUID).
  * GET /api/abn-lookup?abn=12345678901
  */
 export async function GET(req: NextRequest) {
@@ -15,83 +16,58 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  try {
-    const url = `https://abr.business.gov.au/ABN/View?abn=${abn}`;
-    const res = await fetch(url, { next: { revalidate: 86400 } });
-    const html = await res.text();
+  if (!ABR_GUID) {
+    return NextResponse.json(
+      { error: "ABR_GUID not configured" },
+      { status: 500 }
+    );
+  }
 
-    // Check if ABN exists
-    if (html.includes("No records found") || html.includes("is not a valid ABN")) {
+  try {
+    const url = `https://abr.business.gov.au/json/AbnDetails.aspx?abn=${abn}&callback=cb&guid=${ABR_GUID}`;
+    const res = await fetch(url, { next: { revalidate: 86400 } });
+    const text = await res.text();
+
+    // Strip JSONP wrapper: cb({...})
+    const jsonStr = text.replace(/^cb\(/, "").replace(/\)$/, "");
+    const data = JSON.parse(jsonStr);
+
+    // Check for errors
+    if (data.Message && !data.Abn) {
+      return NextResponse.json(
+        { error: data.Message },
+        { status: 404 }
+      );
+    }
+
+    if (!data.Abn) {
       return NextResponse.json(
         { error: "ABN not found" },
         { status: 404 }
       );
     }
 
-    // Extract entity name
-    const entityNameMatch = html.match(
-      /itemprop="legalName"[^>]*>([^<]+)</
-    );
-    const entityName = entityNameMatch?.[1]?.trim() || "";
+    // Extract ACN from Acn field
+    const acn = data.Acn || "";
 
-    // Extract ABN status (Active / Cancelled)
-    const statusMatch = html.match(
-      /ABN status:<\/th>\s*<td>\s*(\w+)/
-    );
-    const abnStatus = statusMatch?.[1]?.trim() || "";
-
-    // Extract entity type
-    const typeMatch = html.match(
-      /Entity type:<\/th>\s*<td>\s*(?:<[^>]*>\s*)*([^<]+)/s
-    );
-    const entityType = typeMatch?.[1]?.trim() || "";
-
-    // Extract location (e.g. "QLD 4006")
-    const locationMatch = html.match(
-      /itemprop="addressLocality"[^>]*>([^<]+)</
-    );
-    const location = locationMatch?.[1]?.trim() || "";
-    const locParts = location.match(/^(\w+)\s+(\d{4})$/);
-    const state = locParts?.[1] || "";
-    const postcode = locParts?.[2] || "";
-
-    // Extract ACN if present
-    const acnMatch = html.match(
-      />\s*(\d{3}\s*\d{3}\s*\d{3})\s*<a[^>]*connectonline\.asic/
-    );
-    const acn = acnMatch?.[1]?.replace(/\s/g, "") || "";
-
-    // Extract business/trading names
+    // Business names come as array of objects or strings
     const businessNames: string[] = [];
-    const bnSection = html.match(
-      /Business name[s]?.*?<table[^>]*>(.*?)<\/table>/s
-    );
-    if (bnSection) {
-      const nameMatches = bnSection[1].matchAll(/<td[^>]*>([A-Z][^<]+)<\/td>/g);
-      for (const m of nameMatches) {
-        const name = m[1].trim();
-        if (name && !name.match(/^\d/) && name.length > 2) {
-          businessNames.push(name);
-        }
+    if (Array.isArray(data.BusinessName)) {
+      for (const b of data.BusinessName) {
+        if (typeof b === "string" && b) businessNames.push(b);
+        else if (b?.organisationName) businessNames.push(b.organisationName);
       }
     }
 
-    if (!entityName) {
-      return NextResponse.json(
-        { error: "Could not parse ABN details" },
-        { status: 404 }
-      );
-    }
-
     return NextResponse.json({
-      abn,
-      abnStatus,
-      entityName,
-      entityType,
+      abn: data.Abn,
+      abnStatus: data.AbnStatus || "",
+      entityName: data.EntityName || "",
+      entityType: data.EntityTypeName || "",
       acn,
       businessNames,
-      state,
-      postcode,
+      state: data.AddressState || "",
+      postcode: data.AddressPostcode || "",
     });
   } catch {
     return NextResponse.json(

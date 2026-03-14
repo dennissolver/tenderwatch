@@ -110,19 +110,19 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
       if (res.ok && data.abn) {
         setAbnStatus("found");
 
-        // Auto-fill fields from ABR data
-        if (data.entityName && !legalName) {
+        // Auto-fill fields from ABR data (always overwrite with ABR source of truth)
+        if (data.entityName) {
           setLegalName(data.entityName);
         }
-        if (data.businessNames?.length > 0 && !businessName) {
+        if (data.businessNames?.length > 0) {
           setBusinessName(data.businessNames[0]);
-        } else if (data.entityName && !businessName) {
+        } else if (data.entityName) {
           setBusinessName(data.entityName);
         }
-        if (data.acn && !acn) {
+        if (data.acn) {
           setAcn(data.acn);
         }
-        if (data.entityType && !orgType) {
+        if (data.entityType) {
           const mapped = mapEntityType(data.entityType);
           if (mapped) setOrgType(mapped);
         }
@@ -140,7 +140,7 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
       setAbnStatus("error");
       setAbnMessage("Lookup failed — you can still enter details manually");
     }
-  }, [legalName, businessName, acn, orgType]);
+  }, []);
 
   function handleAbnChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
