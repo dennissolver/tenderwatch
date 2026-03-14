@@ -6,12 +6,13 @@ export class TenderLinkAdapter extends BaseSiteAdapter {
   }
 
   get siteUrl() {
-    return "https://www.tenderlink.com";
+    return "https://illion.tenderlink.com";
   }
 
   async login(username: string, password: string): Promise<LoginResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/login`);
+      // TenderLink login is on portal subdomain
+      await this.navigateTo("https://portal.tenderlink.com/notification/index.html");
 
       const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
@@ -66,7 +67,8 @@ export class TenderLinkAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/register`);
+      // TenderLink registration/subscription page
+      await this.navigateTo(`${this.siteUrl}/subscribe-online/`);
 
       const pageUrl = this.page.url();
 

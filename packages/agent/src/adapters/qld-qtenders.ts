@@ -6,12 +6,12 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
   }
 
   get siteUrl() {
-    return "https://qtenders.epw.qld.gov.au";
+    return "https://qtenders.hpw.qld.gov.au";
   }
 
   async login(username: string, password: string): Promise<LoginResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/qtenders/login.do`);
+      await this.navigateTo(`${this.siteUrl}`);
 
       const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
@@ -66,15 +66,32 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/qtenders/registration/newOrganisation.do`);
+      // QTenders is now a Blazor WebAssembly SPA — wait for it to fully load
+      await this.navigateTo(`${this.siteUrl}`);
 
       const pageUrl = this.page.url();
 
+      // Wait for Blazor app to initialize
+      try {
+        await this.page.waitForSelector('input[type="password"], a[href*="register" i], button:has-text("Register"), a:has-text("Register"), a:has-text("Sign up")', { timeout: 30000 });
+      } catch {
+        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
+        return { success: false, error: `QTenders Blazor SPA did not load registration form at ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+      }
+
+      // Try to find and click a register link if the SPA loaded a landing page
+      const registerLink = await this.page.$('a[href*="register" i], a:has-text("Register"), a:has-text("Sign up"), button:has-text("Register")');
+      if (registerLink) {
+        await registerLink.click();
+        await this.page.waitForTimeout(3000);
+      }
+
+      // Now wait for registration form fields
       try {
         await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
       } catch {
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No password field on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `No password field on QTenders register page ${this.page.url()}. HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
       const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
@@ -133,7 +150,7 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
   async search(params: SearchParams): Promise<TenderListing[]> {
     const listings: TenderListing[] = [];
 
-    await this.navigateTo(`${this.siteUrl}/qtenders/search.do`);
+    await this.navigateTo(`${this.siteUrl}/qtenders/search`);
 
     if (params.keywords?.length) {
       const keywordField = await this.page.$('input[name="keyword"], input[name="searchText"], #keyword');
@@ -171,7 +188,7 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
   }
 
   async fetchTenderDetail(sourceId: string): Promise<TenderDetail> {
-    await this.navigateTo(`${this.siteUrl}/qtenders/tender/display.do?id=${sourceId}`);
+    await this.navigateTo(`${this.siteUrl}/qtenders/tender/display?id=${sourceId}`);
 
     const title = await this.page.$eval("h1, h2, .tender-title", (el) => el.textContent?.trim() || "").catch(() => "");
     const description = await this.page.$eval(".tender-description, .description, .details", (el) => el.textContent?.trim() || "").catch(() => "");

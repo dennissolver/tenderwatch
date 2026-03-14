@@ -11,7 +11,7 @@ export class WATendersAdapter extends BaseSiteAdapter {
 
   async login(username: string, password: string): Promise<LoginResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/watenders/login.do`);
+      await this.navigateTo(`${this.siteUrl}/watenders/login.action`);
 
       const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
@@ -66,7 +66,7 @@ export class WATendersAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/watenders/registration/newOrganisation.do`);
+      await this.navigateTo(`${this.siteUrl}/watenders/business/create.action?type=respondent`);
 
       const pageUrl = this.page.url();
 
@@ -133,7 +133,7 @@ export class WATendersAdapter extends BaseSiteAdapter {
   async search(params: SearchParams): Promise<TenderListing[]> {
     const listings: TenderListing[] = [];
 
-    await this.navigateTo(`${this.siteUrl}/watenders/search.do`);
+    await this.navigateTo(`${this.siteUrl}/watenders/tender/search/tender-search.action`);
 
     if (params.keywords?.length) {
       const keywordField = await this.page.$('input[name="keyword"], input[name="searchText"], #keyword');
@@ -171,7 +171,7 @@ export class WATendersAdapter extends BaseSiteAdapter {
   }
 
   async fetchTenderDetail(sourceId: string): Promise<TenderDetail> {
-    await this.navigateTo(`${this.siteUrl}/watenders/tender/display.do?id=${sourceId}`);
+    await this.navigateTo(`${this.siteUrl}/watenders/tender/display.action?id=${sourceId}`);
 
     const title = await this.page.$eval("h1, h2, .tender-title", (el) => el.textContent?.trim() || "").catch(() => "");
     const description = await this.page.$eval(".tender-description, .description, .details", (el) => el.textContent?.trim() || "").catch(() => "");

@@ -88,30 +88,54 @@ export class AusTenderAdapter extends BaseSiteAdapter {
     try {
       await this.navigateTo(`${this.siteUrl}/RegisteredUser/Register`);
 
-      const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
 
-      // Wait for password field — handles SPAs that render forms via JS
+      // The page has BOTH a login form (in header) and registration form (main content).
+      // We need to target the REGISTRATION form specifically, not the login form.
+      // Wait for the main content area to have password fields
       try {
-        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
+        await this.page.waitForSelector('#mainContent input[type="password"], .registration-form input[type="password"], form[action*="Register"] input[type="password"], #Password, #register-password', { timeout: 20000 });
       } catch {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name }))).catch(() => []);
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return {
-          success: false,
-          error: `No password field on register page ${pageUrl}. Inputs: ${JSON.stringify(inputs).substring(0, 300)}. HTML: ${bodySnippet.substring(0, 300)}`
-        };
+        // Fallback: look for ANY password field, but skip ones in login forms
+        const allPasswords = await this.page.$$('input[type="password"]');
+        if (allPasswords.length < 2) {
+          const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name }))).catch(() => []);
+          return {
+            success: false,
+            error: `No registration password field on ${pageUrl}. Inputs: ${JSON.stringify(inputs).substring(0, 500)}`
+          };
+        }
       }
 
-      const emailInput = await this.page.$('input[type="email"], input[name*="Email" i], input[name*="email" i], input[name*="user" i], input[id*="Email" i], input[id*="email" i], #Email, #email');
-      const passwordInput = await this.page.$('input[type="password"]:first-of-type, input[name*="Password" i]:not([name*="Confirm"]):not([name*="confirm"]), #Password, #password');
-      const confirmInput = await this.page.$('input[name*="Confirm" i], input[name*="confirm" i], #ConfirmPassword, #confirmPassword');
+      // Target registration form fields — skip login form fields (login-username, login-password)
+      // Look for email/username in the main content area, not the login header
+      const emailInput = await this.page.$('#mainContent input[type="email"], #mainContent input[name*="Email" i], form[action*="Register"] input[type="email"], form[action*="Register"] input[name*="Email" i], #Email:not(#login-username)');
+
+      // Get all password fields — the login form has 1, registration has 2 (password + confirm)
+      const allPasswords = await this.page.$$('input[type="password"]');
+      // Skip the first password (login form) if there are 3+ password fields, otherwise use smart matching
+      let passwordInput = await this.page.$('#mainContent input[type="password"], form[action*="Register"] input[type="password"], #Password');
+      let confirmInput = await this.page.$('#mainContent input[name*="Confirm" i], form[action*="Register"] input[name*="Confirm" i], #ConfirmPassword');
+
+      // Fallback: if we have multiple password fields, use the ones NOT in login form
+      if (!passwordInput && allPasswords.length >= 2) {
+        // Skip login password fields (id contains "login")
+        const regPasswords = [];
+        for (const pw of allPasswords) {
+          const id = await pw.getAttribute("id") || "";
+          if (!id.toLowerCase().includes("login") && !id.toLowerCase().includes("mobile")) {
+            regPasswords.push(pw);
+          }
+        }
+        if (regPasswords.length >= 1) passwordInput = regPasswords[0];
+        if (regPasswords.length >= 2) confirmInput = regPasswords[1];
+      }
 
       if (!emailInput) {
-        const inputs = await this.page.$$eval('input', els =>
-          els.map((el) => ({ tag: el.tagName, type: (el as any).type, id: el.id, name: (el as any).name, placeholder: (el as any).placeholder }))
+        const inputs = await this.page.$$eval('input:not([type="hidden"])', els =>
+          els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name, placeholder: (el as any).placeholder }))
         );
-        return { success: false, error: `Could not find email field on register page. Inputs found: ${JSON.stringify(inputs).substring(0, 500)}` };
+        return { success: false, error: `Could not find registration email field. Inputs found: ${JSON.stringify(inputs).substring(0, 500)}` };
       }
 
       await emailInput.fill(params.email);
@@ -132,30 +156,31 @@ export class AusTenderAdapter extends BaseSiteAdapter {
       }
 
       // Accept terms if checkbox exists
-      const termsCheckbox = await this.page.$('input[type="checkbox"][name*="terms" i], input[type="checkbox"][name*="agree" i]');
+      const termsCheckbox = await this.page.$('#mainContent input[type="checkbox"], form[action*="Register"] input[type="checkbox"]');
       if (termsCheckbox) {
         await termsCheckbox.check();
       }
 
-      await this.page.click('button[type="submit"]');
+      // Click submit in the registration form, not the login form
+      const submitBtn = await this.page.$('#mainContent button[type="submit"], form[action*="Register"] button[type="submit"], form[action*="Register"] input[type="submit"]');
+      if (submitBtn) {
+        await submitBtn.click();
+      } else {
+        await this.page.click('button[type="submit"]');
+      }
       await this.page.waitForTimeout(5000);
 
-      // Check for success — some portals redirect, some show confirmation
-      const currentUrl = this.page.url();
       const hasError = await this.page.$(".validation-summary-errors, .error-message");
-
       if (hasError) {
         const errorText = await hasError.textContent();
         return { success: false, error: errorText?.trim() || "Registration failed" };
       }
 
-      // Check if email verification is required
       const verificationMessage = await this.page.$('text=/verify|confirmation|check your email/i');
       if (verificationMessage) {
         return { success: true, requiresVerification: true };
       }
 
-      // Try to extract session if already logged in after registration
       const loggedIn = await this.isLoggedIn();
       if (loggedIn) {
         const cookies = await this.page.context().cookies();

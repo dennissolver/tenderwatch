@@ -68,13 +68,35 @@ export class SATendersAdapter extends BaseSiteAdapter {
     try {
       await this.navigateTo(`${this.siteUrl}/register`);
 
+      // SA Tenders may redirect to a terms acceptance page first
+      await this.page.waitForTimeout(3000);
+      const currentUrl = this.page.url();
+
+      if (currentUrl.includes("/terms")) {
+        // Accept the terms and conditions
+        const acceptBtn = await this.page.$('button:has-text("Accept"), button:has-text("Agree"), button:has-text("Continue"), input[type="submit"][value*="Accept" i], input[type="submit"][value*="Agree" i], a:has-text("Accept"), a:has-text("I Agree")');
+        const termsCheckbox = await this.page.$('input[type="checkbox"]');
+        if (termsCheckbox) await termsCheckbox.check();
+        if (acceptBtn) {
+          await acceptBtn.click();
+          await this.page.waitForTimeout(3000);
+        } else {
+          // Try clicking any submit button on the terms page
+          const submitBtn = await this.page.$('button[type="submit"], input[type="submit"]');
+          if (submitBtn) {
+            await submitBtn.click();
+            await this.page.waitForTimeout(3000);
+          }
+        }
+      }
+
       const pageUrl = this.page.url();
 
       try {
-        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
+        await this.page.waitForSelector('input[type="password"], input[type="email"]', { timeout: 20000 });
       } catch {
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No password field on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `No registration form fields on ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
       const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');

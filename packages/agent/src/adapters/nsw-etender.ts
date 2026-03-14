@@ -6,12 +6,13 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
   }
 
   get siteUrl() {
-    return "https://tenders.nsw.gov.au";
+    return "https://buy.nsw.gov.au";
   }
 
   async login(username: string, password: string): Promise<LoginResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/?event=public.login`);
+      // buy.nsw Supplier Hub — login page
+      await this.navigateTo(`${this.siteUrl}/supplier/login`);
 
       const pageTitle = await this.page.title();
       const pageUrl = this.page.url();
@@ -23,7 +24,7 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
         return { success: false, error: `No password field on ${pageUrl} (title: "${pageTitle}"). HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
-      const emailField = await this.page.$('input[name="userid"], input[type="email"], input[name*="email" i], input[name*="user" i], #userid, #email');
+      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[name*="user" i], input[id*="email" i], #email, #username');
       const passwordField = await this.page.$('input[type="password"]');
 
       if (!emailField || !passwordField) {
@@ -34,7 +35,7 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
       await emailField.fill(username);
       await passwordField.fill(password);
 
-      await this.page.click('input[type="submit"], button[type="submit"]');
+      await this.page.click('button[type="submit"], input[type="submit"]');
       await this.page.waitForTimeout(3000);
 
       const loggedIn = await this.isLoggedIn();
@@ -44,7 +45,7 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
         return { success: true, sessionData: { cookies } };
       }
 
-      const errorElement = await this.page.$(".error, .alert-danger, .message-error");
+      const errorElement = await this.page.$(".error, .alert-danger, .message-error, [role='alert']");
       const error = errorElement ? await errorElement.textContent() : "Login failed";
       return { success: false, error: error?.trim() };
     } catch (error) {
@@ -57,7 +58,7 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
 
   async isLoggedIn(): Promise<boolean> {
     try {
-      const logoutLink = await this.page.$('a[href*="logout"], a[href*="Logout"]');
+      const logoutLink = await this.page.$('a[href*="logout"], a[href*="Logout"], a[href*="signout"], button:has-text("Sign out"), button:has-text("Log out")');
       return logoutLink !== null;
     } catch {
       return false;
@@ -66,15 +67,16 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      await this.navigateTo(`${this.siteUrl}/?event=public.registrant.show`);
+      // buy.nsw Supplier Hub signup
+      await this.navigateTo(`${this.siteUrl}/supplier/signup`);
 
       const pageUrl = this.page.url();
 
       try {
-        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
+        await this.page.waitForSelector('input[type="password"], input[type="email"], input[name*="email" i]', { timeout: 20000 });
       } catch {
         const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No password field on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `No form fields on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
       }
 
       const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
@@ -84,13 +86,20 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
       }
       await emailField.fill(params.email);
 
+      // Fill name fields if present
+      const firstNameField = await this.page.$('input[name*="first" i], input[name*="given" i], #firstName');
+      if (firstNameField && params.contactFirstName) await firstNameField.fill(params.contactFirstName);
+
+      const lastNameField = await this.page.$('input[name*="last" i], input[name*="surname" i], input[name*="family" i], #lastName');
+      if (lastNameField && params.contactLastName) await lastNameField.fill(params.contactLastName);
+
       const passwordField = await this.page.$('input[type="password"]:first-of-type');
       if (passwordField) await passwordField.fill(params.password);
 
       const confirmField = await this.page.$('input[name*="confirm" i], input[name*="password2" i], #confirmPassword');
       if (confirmField) await confirmField.fill(params.password);
 
-      const companyField = await this.page.$('input[name*="organisation" i], input[name*="company" i], #organisationName');
+      const companyField = await this.page.$('input[name*="company" i], input[name*="organisation" i], input[name*="business" i], #company, #organisationName');
       if (companyField) await companyField.fill(params.companyName);
 
       if (params.abn) {
@@ -101,10 +110,10 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
       const termsCheckbox = await this.page.$('input[type="checkbox"]');
       if (termsCheckbox) await termsCheckbox.check();
 
-      await this.page.click('input[type="submit"], button[type="submit"]');
+      await this.page.click('button[type="submit"], input[type="submit"]');
       await this.page.waitForTimeout(5000);
 
-      const hasError = await this.page.$(".error, .alert-danger, .message-error");
+      const hasError = await this.page.$(".error, .alert-danger, .message-error, [role='alert']");
       if (hasError) {
         const errorText = await hasError.textContent();
         return { success: false, error: errorText?.trim() || "Registration failed" };
@@ -133,27 +142,27 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
   async search(params: SearchParams): Promise<TenderListing[]> {
     const listings: TenderListing[] = [];
 
-    await this.navigateTo(`${this.siteUrl}/?event=public.advancedSearch.show`);
+    await this.navigateTo(`${this.siteUrl}/notices`);
 
     if (params.keywords?.length) {
-      const keywordField = await this.page.$('input[name="keyword"], #keyword');
+      const keywordField = await this.page.$('input[name="keyword"], input[name="search"], input[type="search"], #keyword, #search');
       if (keywordField) await keywordField.fill(params.keywords.join(" "));
     }
 
-    await this.page.click('input[type="submit"][value="Search"], button:has-text("Search")');
+    await this.page.click('button:has-text("Search"), input[type="submit"]');
     await this.page.waitForTimeout(5000);
 
-    const rows = await this.page.$$("table.listing-table tbody tr, .search-results tr");
+    const rows = await this.page.$$("table.listing-table tbody tr, .search-results tr, .notice-item, [data-testid='notice']");
 
     for (const row of rows) {
-      const titleEl = await row.$("td a");
-      const buyerEl = await row.$("td:nth-child(2)");
-      const closesEl = await row.$("td:nth-child(3)");
+      const titleEl = await row.$("td a, a.notice-title, a");
+      const buyerEl = await row.$("td:nth-child(2), .buyer, .agency");
+      const closesEl = await row.$("td:nth-child(3), .closing-date");
 
       if (titleEl) {
         const title = await titleEl.textContent();
         const href = await titleEl.getAttribute("href");
-        const sourceId = href?.match(/RFTUUID=([^&]+)/i)?.[1] || href || "";
+        const sourceId = href?.match(/RFTUUID=([^&]+)/i)?.[1] || href?.match(/\/notices\/([^/]+)/)?.[1] || href || "";
 
         listings.push({
           sourceId,
@@ -169,12 +178,10 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
   }
 
   async fetchTenderDetail(sourceId: string): Promise<TenderDetail> {
-    await this.navigateTo(
-      `${this.siteUrl}/?event=public.rft.show&RFTUUID=${sourceId}`
-    );
+    await this.navigateTo(`${this.siteUrl}/notices/${sourceId}`);
 
-    const title = await this.page.$eval("h1, h2, .rft-title", (el) => el.textContent?.trim() || "").catch(() => "");
-    const description = await this.page.$eval(".rft-description, .description", (el) => el.textContent?.trim() || "").catch(() => "");
+    const title = await this.page.$eval("h1, h2, .notice-title", (el) => el.textContent?.trim() || "").catch(() => "");
+    const description = await this.page.$eval(".notice-description, .description", (el) => el.textContent?.trim() || "").catch(() => "");
     const buyerOrg = await this.page.$eval(".agency, .buyer, .organisation", (el) => el.textContent?.trim() || "").catch(() => "");
 
     const documentUrls: string[] = [];
@@ -204,7 +211,7 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
 
   async logout(): Promise<void> {
     try {
-      await this.page.click('a[href*="logout"], a[href*="Logout"]');
+      await this.page.click('a[href*="logout"], a[href*="signout"], button:has-text("Sign out")');
       await this.page.waitForTimeout(1000);
     } catch {
       // Ignore logout errors
