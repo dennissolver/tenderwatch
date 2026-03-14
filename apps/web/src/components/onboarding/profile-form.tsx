@@ -42,7 +42,6 @@ const ORG_TYPES = [
   "Not for Profit",
 ] as const;
 
-const AU_STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "NT", "ACT"] as const;
 
 // Map ABR entity types to our org types
 function mapEntityType(abrType: string): string {
@@ -354,19 +353,14 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
             <label htmlFor="prof-state" className="text-sm font-medium">
               State
             </label>
-            <select
+            <input
               id="prof-state"
+              type="text"
               value={state}
               onChange={(e) => setState(e.target.value)}
-              className={selectClassName}
-            >
-              <option value="">Select...</option>
-              {AU_STATES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              placeholder="e.g. NSW"
+              className={inputClassName}
+            />
           </div>
         </div>
 
