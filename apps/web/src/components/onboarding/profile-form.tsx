@@ -120,6 +120,9 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
         } else if (data.entityName && !businessName) {
           setBusinessName(data.entityName);
         }
+        if (data.acn && !acn) {
+          setAcn(data.acn);
+        }
         if (data.entityType && !orgType) {
           const mapped = mapEntityType(data.entityType);
           if (mapped) setOrgType(mapped);
@@ -138,7 +141,7 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
       setAbnStatus("error");
       setAbnMessage("Lookup failed — you can still enter details manually");
     }
-  }, [legalName, businessName, orgType]);
+  }, [legalName, businessName, acn, orgType]);
 
   function handleAbnChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;

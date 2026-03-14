@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Proxy to the ABR (Australian Business Register) public JSON endpoint.
- * Strips the JSONP wrapper and returns clean JSON.
+ * Scrapes the ABR public page to look up ABN details.
+ * No API key / GUID required — uses the public HTML view.
  * GET /api/abn-lookup?abn=12345678901
  */
 export async function GET(req: NextRequest) {
@@ -16,32 +16,83 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const url = `https://abr.business.gov.au/json/AbnDetails.aspx?abn=${abn}&callback=cb`;
-    const res = await fetch(url, { next: { revalidate: 86400 } }); // cache 24h
-    const text = await res.text();
+    const url = `https://abr.business.gov.au/ABN/View?abn=${abn}`;
+    const res = await fetch(url, { next: { revalidate: 86400 } });
+    const html = await res.text();
 
-    // Strip JSONP wrapper: cb({...})
-    const jsonStr = text.replace(/^cb\(/, "").replace(/\)$/, "");
-    const data = JSON.parse(jsonStr);
-
-    if (data.Abn) {
-      return NextResponse.json({
-        abn: data.Abn,
-        abnStatus: data.AbnStatus,
-        entityName: data.EntityName || "",
-        entityType: data.EntityTypeName || "",
-        businessNames: (data.BusinessName || []).map(
-          (b: string) => b
-        ),
-        state: data.AddressState || "",
-        postcode: data.AddressPostcode || "",
-      });
+    // Check if ABN exists
+    if (html.includes("No records found") || html.includes("is not a valid ABN")) {
+      return NextResponse.json(
+        { error: "ABN not found" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(
-      { error: data.Message || "ABN not found" },
-      { status: 404 }
+    // Extract entity name
+    const entityNameMatch = html.match(
+      /itemprop="legalName"[^>]*>([^<]+)</
     );
+    const entityName = entityNameMatch?.[1]?.trim() || "";
+
+    // Extract ABN status (Active / Cancelled)
+    const statusMatch = html.match(
+      /ABN status:<\/th>\s*<td>\s*(\w+)/
+    );
+    const abnStatus = statusMatch?.[1]?.trim() || "";
+
+    // Extract entity type
+    const typeMatch = html.match(
+      /Entity type:<\/th>\s*<td>\s*(?:<[^>]*>\s*)*([^<]+)/s
+    );
+    const entityType = typeMatch?.[1]?.trim() || "";
+
+    // Extract location (e.g. "QLD 4006")
+    const locationMatch = html.match(
+      /itemprop="addressLocality"[^>]*>([^<]+)</
+    );
+    const location = locationMatch?.[1]?.trim() || "";
+    const locParts = location.match(/^(\w+)\s+(\d{4})$/);
+    const state = locParts?.[1] || "";
+    const postcode = locParts?.[2] || "";
+
+    // Extract ACN if present
+    const acnMatch = html.match(
+      />\s*(\d{3}\s*\d{3}\s*\d{3})\s*<a[^>]*connectonline\.asic/
+    );
+    const acn = acnMatch?.[1]?.replace(/\s/g, "") || "";
+
+    // Extract business/trading names
+    const businessNames: string[] = [];
+    const bnSection = html.match(
+      /Business name[s]?.*?<table[^>]*>(.*?)<\/table>/s
+    );
+    if (bnSection) {
+      const nameMatches = bnSection[1].matchAll(/<td[^>]*>([A-Z][^<]+)<\/td>/g);
+      for (const m of nameMatches) {
+        const name = m[1].trim();
+        if (name && !name.match(/^\d/) && name.length > 2) {
+          businessNames.push(name);
+        }
+      }
+    }
+
+    if (!entityName) {
+      return NextResponse.json(
+        { error: "Could not parse ABN details" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      abn,
+      abnStatus,
+      entityName,
+      entityType,
+      acn,
+      businessNames,
+      state,
+      postcode,
+    });
   } catch {
     return NextResponse.json(
       { error: "Failed to look up ABN" },

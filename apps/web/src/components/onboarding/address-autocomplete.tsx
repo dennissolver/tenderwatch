@@ -157,7 +157,7 @@ export function AddressAutocomplete({
         autoComplete="off"
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg max-h-60 overflow-auto">
+        <ul className="absolute z-[9999] mt-1 w-full rounded-lg border border-border bg-white shadow-xl max-h-60 overflow-auto dark:bg-zinc-900">
           {suggestions.map((feature, i) => (
             <li
               key={feature.place_name}
