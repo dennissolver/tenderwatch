@@ -20,7 +20,6 @@ export const validateAccount = inngest.createFunction(
     // Step 1: Resolve the plaintext password
     const plainPassword = await step.run("resolve-credentials", async () => {
       if (isRetry) {
-        // Retry: decrypt the already-stored credentials
         const [account] = await db
           .select({ encryptedCredentials: linkedAccounts.encryptedCredentials })
           .from(linkedAccounts)
@@ -66,17 +65,22 @@ export const validateAccount = inngest.createFunction(
 
       const session = await bb.sessions.create({
         projectId: process.env.BROWSERBASE_PROJECT_ID!,
-      });
+        keepAlive: true, // Keep alive for manual steps
+        browserSettings: {
+          solveCaptchas: true, // Auto-solve CAPTCHAs when possible
+        },
+      } as any);
 
       const browser = await chromium.connectOverCDP(session.connectUrl);
       const context = browser.contexts()[0];
       const page = context.pages()[0];
 
+      let shouldCloseBrowser = true;
+
       try {
         const adapter = getAdapter(site, browser as any, page);
 
         if (isRegistration) {
-          // Register on the portal
           const regResult = await adapter.register({
             email: username,
             password: plainPassword,
@@ -98,18 +102,87 @@ export const validateAccount = inngest.createFunction(
             contactPosition: contactPosition || undefined,
           });
 
+          // Check if manual step is needed (CAPTCHA detected)
+          if (!regResult.success && !regResult.requiresManualStep) {
+            // Check if there's a CAPTCHA on the page
+            const hasCaptcha = await adapter.detectCaptcha();
+            if (hasCaptcha) {
+              regResult.requiresManualStep = { type: "captcha" };
+            }
+          }
+
+          if (regResult.requiresManualStep) {
+            // Keep session alive and return live view URL
+            shouldCloseBrowser = false;
+            try {
+              const liveUrls = await bb.sessions.debug(session.id);
+              return {
+                success: false,
+                awaitingUser: true,
+                manualStepType: regResult.requiresManualStep.type,
+                browserbaseSessionId: session.id,
+                liveViewUrl: (liveUrls as any).debuggerFullscreenUrl || (liveUrls as any).debuggerUrl || "",
+              };
+            } catch {
+              return {
+                success: false,
+                awaitingUser: true,
+                manualStepType: regResult.requiresManualStep.type,
+                browserbaseSessionId: session.id,
+                liveViewUrl: "",
+              };
+            }
+          }
+
+          if (regResult.requiresVerification) {
+            // Email verification needed — keep session info but release browser
+            return {
+              success: false,
+              awaitingUser: true,
+              manualStepType: "email_verification",
+              browserbaseSessionId: null,
+              liveViewUrl: null,
+            };
+          }
+
           if (!regResult.success) {
             return { success: false, error: regResult.error, sessionData: null };
           }
 
-          if (regResult.requiresVerification) {
-            return { success: true, requiresVerification: true, sessionData: regResult.sessionData };
-          }
-
           return { success: true, sessionData: regResult.sessionData };
         } else {
-          // Login (used for non-registration and for retries of registered accounts)
+          // Login flow
           const loginResult = await adapter.login(username, plainPassword);
+
+          // Check for CAPTCHA on login too
+          if (!loginResult.success && !loginResult.requiresManualStep) {
+            const hasCaptcha = await adapter.detectCaptcha();
+            if (hasCaptcha) {
+              loginResult.requiresManualStep = { type: "captcha" };
+            }
+          }
+
+          if (loginResult.requiresManualStep) {
+            shouldCloseBrowser = false;
+            try {
+              const liveUrls = await bb.sessions.debug(session.id);
+              return {
+                success: false,
+                awaitingUser: true,
+                manualStepType: loginResult.requiresManualStep.type,
+                browserbaseSessionId: session.id,
+                liveViewUrl: (liveUrls as any).debuggerFullscreenUrl || (liveUrls as any).debuggerUrl || "",
+              };
+            } catch {
+              return {
+                success: false,
+                awaitingUser: true,
+                manualStepType: loginResult.requiresManualStep.type,
+                browserbaseSessionId: session.id,
+                liveViewUrl: "",
+              };
+            }
+          }
 
           if (!loginResult.success) {
             return { success: false, error: loginResult.error, sessionData: null };
@@ -118,22 +191,46 @@ export const validateAccount = inngest.createFunction(
           return { success: true, sessionData: loginResult.sessionData };
         }
       } finally {
-        await browser.close();
+        if (shouldCloseBrowser) {
+          await browser.close();
+          // Release the session
+          try {
+            await bb.sessions.update(session.id, { status: "REQUEST_RELEASE" } as any);
+          } catch {
+            // Ignore release errors
+          }
+        }
       }
     });
 
     // Step 3: Update account status based on result
     await step.run("update-account-status", async () => {
-      if (result.success) {
+      if ((result as any).awaitingUser) {
+        // Manual step needed — save session info for UI embed
+        await db
+          .update(linkedAccounts)
+          .set({
+            status: "awaiting_user" as any,
+            browserbaseSessionId: (result as any).browserbaseSessionId || null,
+            liveViewUrl: (result as any).liveViewUrl || null,
+            manualStepType: (result as any).manualStepType || null,
+            lastError: null,
+            updatedAt: new Date(),
+          } as any)
+          .where(eq(linkedAccounts.id, accountId));
+      } else if (result.success) {
         await db
           .update(linkedAccounts)
           .set({
             status: "connected",
-            sessionData: result.sessionData || null,
+            sessionData: (result as any).sessionData || null,
             lastSyncAt: new Date(),
             lastError: null,
+            browserbaseSessionId: null,
+            liveViewUrl: null,
+            manualStepType: null,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(linkedAccounts.id, accountId));
       } else {
         await db
@@ -141,8 +238,11 @@ export const validateAccount = inngest.createFunction(
           .set({
             status: "error",
             lastError: (result as any).error || "Validation failed",
+            browserbaseSessionId: null,
+            liveViewUrl: null,
+            manualStepType: null,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(linkedAccounts.id, accountId));
       }
     });
@@ -151,6 +251,7 @@ export const validateAccount = inngest.createFunction(
       accountId,
       site,
       success: result.success,
+      awaitingUser: (result as any).awaitingUser || false,
       error: (result as any).error,
     };
   }

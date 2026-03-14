@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Search, Eye, Link2, Settings } from "lucide-react";
+import { LayoutDashboard, Search, Eye, Link2, Building2, Settings } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/tenders", label: "Tenders", icon: Search },
   { href: "/dashboard/watches", label: "Watches", icon: Eye },
   { href: "/dashboard/accounts", label: "Accounts", icon: Link2 },
+  { href: "/dashboard/profile", label: "Business Profile", icon: Building2 },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

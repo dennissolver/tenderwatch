@@ -35,6 +35,8 @@ export default async function AccountsPage() {
       lastSyncAt: account ? (account as any).last_sync_at : null,
       lastError: account ? (account as any).last_error : null,
       siteUsername: account ? (account as any).site_username : null,
+      liveViewUrl: account ? (account as any).live_view_url : null,
+      manualStepType: account ? (account as any).manual_step_type : null,
     };
   });
 

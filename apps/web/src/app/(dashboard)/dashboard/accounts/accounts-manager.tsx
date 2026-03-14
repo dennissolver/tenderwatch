@@ -11,12 +11,14 @@ import {
   Globe,
   RefreshCw,
   Trash2,
+  Eye,
 } from "lucide-react";
 import { SITES } from "@tenderwatch/shared";
 import type { SiteKey } from "@tenderwatch/shared";
 import { ConsentPanel } from "@/components/onboarding/consent-panel";
 import { PortalLoginForm } from "@/components/onboarding/portal-login-form";
 import { PortalRegisterForm } from "@/components/onboarding/portal-register-form";
+import { LiveSessionEmbed } from "@/components/onboarding/live-session-embed";
 import { retryAllPendingAccounts, removeLinkedAccount } from "@/lib/actions/portal-linking";
 
 interface PortalStatus {
@@ -29,6 +31,8 @@ interface PortalStatus {
   lastSyncAt: string | null;
   lastError: string | null;
   siteUsername: string | null;
+  liveViewUrl: string | null;
+  manualStepType: string | null;
 }
 
 interface ProfileData {
@@ -67,6 +71,7 @@ const STATUS_CONFIG = {
   pending: { icon: Clock, label: "Pending", color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200" },
   error: { icon: AlertCircle, label: "Error", color: "text-red-600", bg: "bg-red-50 border-red-200" },
   expired: { icon: XCircle, label: "Expired", color: "text-orange-600", bg: "bg-orange-50 border-orange-200" },
+  awaiting_user: { icon: Eye, label: "Action Required", color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
   not_linked: { icon: Link2, label: "Not Connected", color: "text-muted-foreground", bg: "border" },
 } as const;
 
@@ -77,7 +82,7 @@ export function AccountsManager({ portals, userEmail, userCompanyName, userAbn, 
   const [retryMessage, setRetryMessage] = useState<string | null>(null);
 
   const pendingOrErrorCount = portals.filter(
-    (p) => p.status === "pending" || p.status === "error"
+    (p) => p.status === "pending" || p.status === "error" || p.status === "awaiting_user"
   ).length;
 
   function handleConnect(siteKey: string, mode: "login" | "register") {
@@ -204,6 +209,12 @@ export function AccountsManager({ portals, userEmail, userCompanyName, userAbn, 
                 </div>
               )}
 
+              {portal.status === "awaiting_user" && !isExpanded && portal.accountId && (
+                <span className="text-xs font-medium text-blue-600 shrink-0">
+                  Action Required
+                </span>
+              )}
+
               {(portal.status === "pending" || portal.status === "connected") && !isExpanded && portal.accountId && (
                 <button
                   onClick={() => handleRemove(portal.accountId!)}
@@ -215,6 +226,18 @@ export function AccountsManager({ portals, userEmail, userCompanyName, userAbn, 
                 </button>
               )}
             </div>
+
+            {/* Live session embed for awaiting_user */}
+            {portal.status === "awaiting_user" && portal.accountId && portal.manualStepType && (
+              <div className="mt-4 pt-4 border-t">
+                <LiveSessionEmbed
+                  accountId={portal.accountId}
+                  portalName={portal.name}
+                  liveViewUrl={portal.liveViewUrl}
+                  manualStepType={portal.manualStepType}
+                />
+              </div>
+            )}
 
             {/* Expanded linking forms */}
             {isExpanded && (

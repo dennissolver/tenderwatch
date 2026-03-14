@@ -21,7 +21,8 @@ export const accountStatusEnum = pgEnum("account_status", [
   "connected",
   "error",
   "expired",
-  "pending"
+  "pending",
+  "awaiting_user"
 ]);
 
 export const linkedAccounts = pgTable("linked_accounts", {
@@ -44,6 +45,11 @@ export const linkedAccounts = pgTable("linked_accounts", {
   status: accountStatusEnum("status").default("pending").notNull(),
   lastSyncAt: timestamp("last_sync_at"),
   lastError: text("last_error"),
+
+  // Live session embed for manual steps (CAPTCHA, email verification)
+  browserbaseSessionId: text("browserbase_session_id"),
+  liveViewUrl: text("live_view_url"),
+  manualStepType: text("manual_step_type"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()

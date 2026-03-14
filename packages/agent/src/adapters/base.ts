@@ -1,8 +1,13 @@
 import type { Page, Browser } from "playwright-core";
 
+export interface ManualStepRequired {
+  type: "captcha" | "email_verification";
+}
+
 export interface LoginResult {
   success: boolean;
   error?: string;
+  requiresManualStep?: ManualStepRequired;
   sessionData?: Record<string, unknown>;
 }
 
@@ -59,6 +64,7 @@ export interface RegistrationResult {
   success: boolean;
   error?: string;
   requiresVerification?: boolean;
+  requiresManualStep?: ManualStepRequired;
   sessionData?: Record<string, unknown>;
 }
 
@@ -88,6 +94,13 @@ export abstract class BaseSiteAdapter {
 
   async screenshot(path: string): Promise<void> {
     await this.page.screenshot({ path, fullPage: true });
+  }
+
+  async detectCaptcha(): Promise<boolean> {
+    const captcha = await this.page.$(
+      'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], .g-recaptcha, .h-captcha, #captcha, [class*="captcha" i], iframe[title*="captcha" i]'
+    );
+    return captcha !== null;
   }
 }
 

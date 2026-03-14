@@ -25,9 +25,17 @@ export default async function SettingsPage() {
 
       {/* Profile */}
       <div className="border rounded-xl p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <User className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold">Profile</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <User className="h-5 w-5 text-muted-foreground" />
+            <h2 className="font-semibold">Profile</h2>
+          </div>
+          <Link
+            href="/dashboard/profile"
+            className="text-sm text-primary hover:underline"
+          >
+            Edit
+          </Link>
         </div>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">

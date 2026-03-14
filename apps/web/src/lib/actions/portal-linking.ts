@@ -341,3 +341,55 @@ export async function retryAllPendingAccounts(): Promise<{
   revalidatePath("/dashboard/accounts");
   return { success: true, retriedCount: events.length };
 }
+
+export async function confirmManualStep(
+  accountId: string
+): Promise<LinkPortalResult> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Verify ownership
+  const { data: account } = await supabase
+    .from("linked_accounts")
+    .select("id, status")
+    .eq("id", accountId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!account) {
+    return { success: false, error: "Account not found" };
+  }
+
+  // Fire event to check if manual step was completed
+  await inngest.send({
+    name: "account/complete-manual-step",
+    data: { accountId },
+  });
+
+  revalidatePath("/dashboard/accounts");
+  return { success: true };
+}
+
+export async function getAccountStatus(
+  accountId: string
+): Promise<{ status: string; error: string | null }> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { status: "error", error: "Not authenticated" };
+
+  const { data } = await supabase
+    .from("linked_accounts")
+    .select("status, last_error")
+    .eq("id", accountId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!data) return { status: "error", error: "Account not found" };
+
+  return { status: (data as any).status, error: (data as any).last_error };
+}
