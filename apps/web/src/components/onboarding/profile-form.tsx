@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import { updateProfile } from "@/lib/actions/portal-linking";
+import { AddressAutocomplete } from "./address-autocomplete";
 
 interface ProfileFormProps {
   initialData: {
@@ -43,6 +44,20 @@ const ORG_TYPES = [
 
 const AU_STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "NT", "ACT"] as const;
 
+// Map ABR entity types to our org types
+function mapEntityType(abrType: string): string {
+  const lower = abrType.toLowerCase();
+  if (lower.includes("company") || lower.includes("proprietary")) return "Company";
+  if (lower.includes("sole trader") || lower.includes("individual")) return "Sole Trader";
+  if (lower.includes("partnership")) return "Partnership";
+  if (lower.includes("trust")) return "Trust";
+  if (lower.includes("government") || lower.includes("commonwealth") || lower.includes("state")) return "Government";
+  if (lower.includes("not-for-profit") || lower.includes("charity")) return "Not for Profit";
+  return "";
+}
+
+type AbnStatus = "idle" | "loading" | "found" | "not-found" | "error";
+
 export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
   const [legalName, setLegalName] = useState(
     initialData.legalName || initialData.companyName || ""
@@ -72,6 +87,80 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ABN lookup state
+  const [abnStatus, setAbnStatus] = useState<AbnStatus>("idle");
+  const [abnMessage, setAbnMessage] = useState("");
+  const abnDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const lookupAbn = useCallback(async (abnValue: string) => {
+    const digits = abnValue.replace(/\s/g, "");
+    if (digits.length !== 11) {
+      setAbnStatus("idle");
+      setAbnMessage("");
+      return;
+    }
+
+    setAbnStatus("loading");
+    setAbnMessage("");
+
+    try {
+      const res = await fetch(`/api/abn-lookup?abn=${digits}`);
+      const data = await res.json();
+
+      if (res.ok && data.abn) {
+        setAbnStatus("found");
+
+        // Auto-fill fields from ABR data
+        if (data.entityName && !legalName) {
+          setLegalName(data.entityName);
+        }
+        if (data.businessNames?.length > 0 && !businessName) {
+          setBusinessName(data.businessNames[0]);
+        } else if (data.entityName && !businessName) {
+          setBusinessName(data.entityName);
+        }
+        if (data.entityType && !orgType) {
+          const mapped = mapEntityType(data.entityType);
+          if (mapped) setOrgType(mapped);
+        }
+
+        const statusLabel =
+          data.abnStatus === "Active" ? "Active" : data.abnStatus || "Unknown";
+        setAbnMessage(
+          `${data.entityName}${statusLabel !== "Active" ? ` (${statusLabel})` : ""}`
+        );
+      } else {
+        setAbnStatus("not-found");
+        setAbnMessage(data.error || "ABN not found");
+      }
+    } catch {
+      setAbnStatus("error");
+      setAbnMessage("Lookup failed — you can still enter details manually");
+    }
+  }, [legalName, businessName, orgType]);
+
+  function handleAbnChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    setAbn(val);
+
+    if (abnDebounceRef.current) clearTimeout(abnDebounceRef.current);
+    abnDebounceRef.current = setTimeout(() => lookupAbn(val), 500);
+  }
+
+  function handleAddressSelect(result: {
+    addressLine1: string;
+    city: string;
+    state: string;
+    postcode: string;
+    country: string;
+  }) {
+    setAddressLine1(result.addressLine1);
+    setCity(result.city);
+    setState(result.state);
+    setPostcode(result.postcode);
+    setCountry(result.country);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -110,6 +199,48 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Company Details</h3>
 
+        {/* ABN — first, with auto-lookup */}
+        <div className="space-y-2">
+          <label htmlFor="prof-abn" className="text-sm font-medium">
+            ABN
+          </label>
+          <div className="relative">
+            <input
+              id="prof-abn"
+              type="text"
+              value={abn}
+              onChange={handleAbnChange}
+              placeholder="e.g. 12 345 678 901"
+              className={`${inputClassName} pr-10`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {abnStatus === "loading" && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              {abnStatus === "found" && (
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              )}
+              {(abnStatus === "not-found" || abnStatus === "error") && (
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+              )}
+              {abnStatus === "idle" && abn.replace(/\s/g, "").length < 11 && (
+                <Search className="h-4 w-4 text-muted-foreground/50" />
+              )}
+            </div>
+          </div>
+          {abnMessage && (
+            <p
+              className={`text-xs ${
+                abnStatus === "found"
+                  ? "text-green-600"
+                  : "text-amber-600"
+              }`}
+            >
+              {abnMessage}
+            </p>
+          )}
+        </div>
+
         <div className="space-y-2">
           <label htmlFor="prof-legalName" className="text-sm font-medium">
             Legal Name
@@ -132,20 +263,6 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
             type="text"
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
-            className={inputClassName}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="prof-abn" className="text-sm font-medium">
-            ABN
-          </label>
-          <input
-            id="prof-abn"
-            type="text"
-            value={abn}
-            onChange={(e) => setAbn(e.target.value)}
-            placeholder="e.g. 12 345 678 901"
             className={inputClassName}
           />
         </div>
@@ -192,12 +309,13 @@ export function ProfileForm({ initialData, onSave }: ProfileFormProps) {
           <label htmlFor="prof-address1" className="text-sm font-medium">
             Street Address
           </label>
-          <input
+          <AddressAutocomplete
             id="prof-address1"
-            type="text"
             value={addressLine1}
-            onChange={(e) => setAddressLine1(e.target.value)}
+            onChange={setAddressLine1}
+            onSelect={handleAddressSelect}
             className={inputClassName}
+            placeholder="Start typing an address..."
           />
         </div>
 
