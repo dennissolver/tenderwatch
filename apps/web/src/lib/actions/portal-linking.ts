@@ -283,6 +283,33 @@ export async function retryAllPendingAccounts(): Promise<{
     return { success: true, retriedCount: 0 };
   }
 
+  // Fetch user profile for registration retries
+  const { data: profile } = await supabase
+    .from("users")
+    .select("company_name, abn, acn, legal_name, business_name, org_type, address_line1, address_line2, city, state, postcode, country, phone, contact_first_name, contact_last_name, contact_position")
+    .eq("id", user.id)
+    .single();
+
+  const p = profile as any;
+  const profileData = p ? {
+    companyName: p.company_name || "",
+    abn: p.abn || "",
+    acn: p.acn || "",
+    legalName: p.legal_name || "",
+    businessName: p.business_name || "",
+    orgType: p.org_type || "",
+    addressLine1: p.address_line1 || "",
+    addressLine2: p.address_line2 || "",
+    city: p.city || "",
+    state: p.state || "",
+    postcode: p.postcode || "",
+    country: p.country || "Australia",
+    phone: p.phone || "",
+    contactFirstName: p.contact_first_name || "",
+    contactLastName: p.contact_last_name || "",
+    contactPosition: p.contact_position || "",
+  } : null;
+
   // Reset all to pending and re-fire validation events
   const events = [];
   for (const account of accounts) {
@@ -302,6 +329,8 @@ export async function retryAllPendingAccounts(): Promise<{
         password: "__USE_STORED__", // Signal to use already-encrypted credentials
         site: a.site,
         isRegistration: a.registered_via_tenderwatch || false,
+        // Include profile data for registration retries
+        ...(profileData || {}),
       },
     });
   }

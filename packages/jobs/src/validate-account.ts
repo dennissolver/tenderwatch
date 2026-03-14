@@ -75,8 +75,8 @@ export const validateAccount = inngest.createFunction(
       try {
         const adapter = getAdapter(site, browser as any, page);
 
-        if (isRegistration && !isRetry) {
-          // Register on the portal (only on first attempt, not retries)
+        if (isRegistration) {
+          // Register on the portal
           const regResult = await adapter.register({
             email: username,
             password: plainPassword,
