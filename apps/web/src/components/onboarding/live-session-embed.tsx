@@ -96,16 +96,34 @@ export function LiveSessionEmbed({
         </div>
       </div>
 
-      {/* Embedded browser view for CAPTCHA */}
+      {/* Browser view for CAPTCHA — open in new tab (Browserbase blocks iframe embedding) */}
       {manualStepType === "captcha" && liveViewUrl && (
-        <div className="rounded-lg border overflow-hidden">
-          <iframe
-            src={liveViewUrl}
-            className="w-full border-0"
-            style={{ height: "500px" }}
-            allow="clipboard-read; clipboard-write"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          />
+        <div className="rounded-lg border border-dashed border-blue-300 bg-blue-50/50 p-6 text-center space-y-3">
+          <p className="text-sm text-blue-800">
+            A live browser session has been opened with your details pre-filled.
+          </p>
+          <a
+            href={liveViewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Open Browser Session
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+          <p className="text-xs text-blue-600">
+            Complete the CAPTCHA in the browser window, then come back here and click the button below.
+          </p>
+        </div>
+      )}
+
+      {manualStepType === "captcha" && !liveViewUrl && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm text-amber-800">
+            Browser session could not be loaded. Please click <strong>I've Completed This Step</strong> to retry, or Remove and re-register this portal.
+          </p>
         </div>
       )}
 
