@@ -66,43 +66,47 @@ export class WATendersAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
+      // WA Tenders multi-step registration wizard
       await this.navigateTo(`${this.siteUrl}/watenders/business/create.action?type=respondent`);
 
-      const pageUrl = this.page.url();
-
+      await this.page.waitForTimeout(3000);
       try {
-        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
+        await this.page.waitForSelector('input:not([type="hidden"])', { timeout: 20000 });
       } catch {
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No password field on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `Registration page did not load at ${this.page.url()}` };
       }
 
-      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
-      if (!emailField) {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name })));
-        return { success: false, error: `No email field on register page. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
-      }
-      await emailField.fill(params.email);
+      // Fill all available fields on the current step
+      await this.fillRegistrationFields(params);
 
-      const passwordField = await this.page.$('input[type="password"]:first-of-type');
-      if (passwordField) await passwordField.fill(params.password);
-
-      const confirmField = await this.page.$('input[name*="confirm" i], input[name*="retype" i], #confirmPassword');
-      if (confirmField) await confirmField.fill(params.password);
-
-      const companyField = await this.page.$('input[name*="organisation" i], input[name*="org" i], #organisationName');
-      if (companyField) await companyField.fill(params.companyName);
-
-      if (params.abn) {
-        const abnField = await this.page.$('input[name*="abn" i], #abn');
-        if (abnField) await abnField.fill(params.abn);
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
       }
 
-      const termsCheckbox = await this.page.$('input[type="checkbox"]');
-      if (termsCheckbox) await termsCheckbox.check();
+      // WA has a multi-step wizard — try to advance through steps
+      for (let step = 0; step < 4; step++) {
+        const nextBtn = await this.page.$('button:has-text("Next"), input[value="Next"], a:has-text("Next"), button:has-text("Continue")');
+        if (nextBtn) {
+          await nextBtn.click();
+          await this.page.waitForTimeout(3000);
+          // Fill fields on the new step
+          await this.fillRegistrationFields(params);
 
-      await this.page.click('input[type="submit"], button[type="submit"]');
+          if (await this.detectCaptcha()) {
+            return { success: false, requiresManualStep: { type: "captcha" } };
+          }
+        } else {
+          break;
+        }
+      }
+
+      // Final submit
+      await this.page.click('button[type="submit"], input[type="submit"], button:has-text("Submit"), button:has-text("Register")').catch(() => {});
       await this.page.waitForTimeout(5000);
+
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
+      }
 
       const hasError = await this.page.$(".error, .alert-danger, .errorMessage");
       if (hasError) {
@@ -115,8 +119,7 @@ export class WATendersAdapter extends BaseSiteAdapter {
         return { success: true, requiresVerification: true };
       }
 
-      const loggedIn = await this.isLoggedIn();
-      if (loggedIn) {
+      if (await this.isLoggedIn()) {
         const cookies = await this.page.context().cookies();
         return { success: true, sessionData: { cookies } };
       }

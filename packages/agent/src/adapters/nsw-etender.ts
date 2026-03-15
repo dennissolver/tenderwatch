@@ -67,51 +67,29 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      // buy.nsw Supplier Hub signup
       await this.navigateTo("https://suppliers.buy.nsw.gov.au/login/signup/supplier");
 
-      const pageUrl = this.page.url();
-
+      await this.page.waitForTimeout(3000);
       try {
-        await this.page.waitForSelector('input[type="password"], input[type="email"], input[name*="email" i]', { timeout: 20000 });
+        await this.page.waitForSelector('input:not([type="hidden"])', { timeout: 20000 });
       } catch {
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No form fields on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `Registration page did not load at ${this.page.url()}` };
       }
 
-      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
-      if (!emailField) {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name })));
-        return { success: false, error: `No email field on register page. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
-      }
-      await emailField.fill(params.email);
+      // Fill all available fields
+      await this.fillRegistrationFields(params);
 
-      // Fill name fields if present
-      const firstNameField = await this.page.$('input[name*="first" i], input[name*="given" i], #firstName');
-      if (firstNameField && params.contactFirstName) await firstNameField.fill(params.contactFirstName);
-
-      const lastNameField = await this.page.$('input[name*="last" i], input[name*="surname" i], input[name*="family" i], #lastName');
-      if (lastNameField && params.contactLastName) await lastNameField.fill(params.contactLastName);
-
-      const passwordField = await this.page.$('input[type="password"]:first-of-type');
-      if (passwordField) await passwordField.fill(params.password);
-
-      const confirmField = await this.page.$('input[name*="confirm" i], input[name*="password2" i], #confirmPassword');
-      if (confirmField) await confirmField.fill(params.password);
-
-      const companyField = await this.page.$('input[name*="company" i], input[name*="organisation" i], input[name*="business" i], #company, #organisationName');
-      if (companyField) await companyField.fill(params.companyName);
-
-      if (params.abn) {
-        const abnField = await this.page.$('input[name*="abn" i], #abn');
-        if (abnField) await abnField.fill(params.abn);
+      // Check for CAPTCHA
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
       }
 
-      const termsCheckbox = await this.page.$('input[type="checkbox"]');
-      if (termsCheckbox) await termsCheckbox.check();
-
-      await this.page.click('button[type="submit"], input[type="submit"]');
+      await this.page.click('button[type="submit"], input[type="submit"]').catch(() => {});
       await this.page.waitForTimeout(5000);
+
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
+      }
 
       const hasError = await this.page.$(".error, .alert-danger, .message-error, [role='alert']");
       if (hasError) {
@@ -124,18 +102,14 @@ export class NSWeTenderAdapter extends BaseSiteAdapter {
         return { success: true, requiresVerification: true };
       }
 
-      const loggedIn = await this.isLoggedIn();
-      if (loggedIn) {
+      if (await this.isLoggedIn()) {
         const cookies = await this.page.context().cookies();
         return { success: true, sessionData: { cookies } };
       }
 
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Registration failed",
-      };
+      return { success: false, error: error instanceof Error ? error.message : "Registration failed" };
     }
   }
 

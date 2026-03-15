@@ -92,68 +92,26 @@ export class SATendersAdapter extends BaseSiteAdapter {
 
       const pageUrl = this.page.url();
 
-      // SA Tenders: password is SYSTEM-GENERATED and emailed, no password field on form
+      // SA Tenders: password is SYSTEM-GENERATED and emailed
       try {
-        await this.page.waitForSelector('input[type="text"], input[type="email"], input[name*="email" i], input[name*="name" i]', { timeout: 20000 });
+        await this.page.waitForSelector('input:not([type="hidden"])', { timeout: 20000 });
       } catch {
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No registration form fields on ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `Registration page did not load at ${this.page.url()}` };
       }
 
-      // Fill trading/business name
-      const companyField = await this.page.$('input[name*="trading" i], input[name*="business" i], input[name*="company" i], input[name*="organisation" i], #tradingName, #businessName');
-      if (companyField) await companyField.fill(params.companyName);
+      // Fill all available fields (password may not exist — SA generates it)
+      await this.fillRegistrationFields(params);
 
-      // Fill ABN
-      if (params.abn) {
-        const abnField = await this.page.$('input[name*="abn" i], #abn');
-        if (abnField) await abnField.fill(params.abn);
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
       }
 
-      // Fill username
-      const usernameField = await this.page.$('input[name*="username" i], input[name*="user" i], #username');
-      if (usernameField) await usernameField.fill(params.email);
-
-      // Fill email
-      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
-      if (emailField) await emailField.fill(params.email);
-
-      // Fill contact name
-      const contactField = await this.page.$('input[name*="contact" i], input[name*="name" i]:not([name*="business"]):not([name*="trading"]):not([name*="user"]), #contactName');
-      if (contactField) {
-        const contactName = [params.contactFirstName, params.contactLastName].filter(Boolean).join(" ") || params.companyName;
-        await contactField.fill(contactName);
-      }
-
-      // Fill phone
-      if (params.phone) {
-        const phoneField = await this.page.$('input[type="tel"], input[name*="phone" i], #phone');
-        if (phoneField) await phoneField.fill(params.phone);
-      }
-
-      // Fill address fields if present
-      if (params.addressLine1) {
-        const addressField = await this.page.$('input[name*="address" i], #address');
-        if (addressField) await addressField.fill(params.addressLine1);
-      }
-      if (params.city) {
-        const cityField = await this.page.$('input[name*="city" i], input[name*="suburb" i], #city');
-        if (cityField) await cityField.fill(params.city);
-      }
-      if (params.state) {
-        const stateField = await this.page.$('input[name*="state" i], select[name*="state" i], #state');
-        if (stateField) await stateField.fill(params.state);
-      }
-      if (params.postcode) {
-        const postcodeField = await this.page.$('input[name*="post" i], input[name*="zip" i], #postcode');
-        if (postcodeField) await postcodeField.fill(params.postcode);
-      }
-
-      const termsCheckbox = await this.page.$('input[type="checkbox"]');
-      if (termsCheckbox) await termsCheckbox.check();
-
-      await this.page.click('button[type="submit"], input[type="submit"]');
+      await this.page.click('button[type="submit"], input[type="submit"]').catch(() => {});
       await this.page.waitForTimeout(5000);
+
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
+      }
 
       const hasError = await this.page.$(".error, .alert-danger, .validation-error");
       if (hasError) {
@@ -161,13 +119,13 @@ export class SATendersAdapter extends BaseSiteAdapter {
         return { success: false, error: errorText?.trim() || "Registration failed" };
       }
 
-      const verificationMessage = await this.page.$('text=/verify|confirmation|check your email/i');
+      // SA sends a system-generated password via email
+      const verificationMessage = await this.page.$('text=/verify|confirmation|check your email|password.*sent|registration.*complete/i');
       if (verificationMessage) {
-        return { success: true, requiresVerification: true };
+        return { success: true, requiresVerification: true, requiresManualStep: { type: "email_verification" } };
       }
 
-      const loggedIn = await this.isLoggedIn();
-      if (loggedIn) {
+      if (await this.isLoggedIn()) {
         const cookies = await this.page.context().cookies();
         return { success: true, sessionData: { cookies } };
       }

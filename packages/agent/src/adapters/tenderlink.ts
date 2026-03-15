@@ -67,39 +67,37 @@ export class TenderLinkAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      // TenderLink registration/subscription page
+      // TenderLink subscribe page (paid service)
       await this.navigateTo(`${this.siteUrl}/subscribe-online/`);
 
-      const pageUrl = this.page.url();
+      await this.page.waitForTimeout(3000);
+
+      // Look for a plan selection or registration form
+      const selectBtn = await this.page.$('a:has-text("Select"), button:has-text("Select"), a:has-text("Continue"), button:has-text("Continue")');
+      if (selectBtn) {
+        await selectBtn.click();
+        await this.page.waitForTimeout(3000);
+      }
 
       try {
-        await this.page.waitForSelector('input[type="password"]', { timeout: 20000 });
+        await this.page.waitForSelector('input:not([type="hidden"])', { timeout: 20000 });
       } catch {
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No password field on register page ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `TenderLink registration form did not load at ${this.page.url()}` };
       }
 
-      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
-      if (!emailField) {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name })));
-        return { success: false, error: `No email field on register page. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
+      // Fill all available fields
+      await this.fillRegistrationFields(params);
+
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
       }
-      await emailField.fill(params.email);
 
-      const passwordField = await this.page.$('input[type="password"]:first-of-type');
-      if (passwordField) await passwordField.fill(params.password);
-
-      const confirmField = await this.page.$('input[name*="confirm" i], input[name*="password_confirmation" i], #password_confirmation');
-      if (confirmField) await confirmField.fill(params.password);
-
-      const companyField = await this.page.$('input[name*="company" i], input[name*="organisation" i], #company');
-      if (companyField) await companyField.fill(params.companyName);
-
-      const termsCheckbox = await this.page.$('input[type="checkbox"]');
-      if (termsCheckbox) await termsCheckbox.check();
-
-      await this.page.click('button[type="submit"], input[type="submit"]');
+      await this.page.click('button[type="submit"], input[type="submit"]').catch(() => {});
       await this.page.waitForTimeout(5000);
+
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
+      }
 
       const hasError = await this.page.$(".error, .alert-danger, .alert-error");
       if (hasError) {
@@ -112,8 +110,7 @@ export class TenderLinkAdapter extends BaseSiteAdapter {
         return { success: true, requiresVerification: true };
       }
 
-      const loggedIn = await this.isLoggedIn();
-      if (loggedIn) {
+      if (await this.isLoggedIn()) {
         const cookies = await this.page.context().cookies();
         return { success: true, sessionData: { cookies } };
       }

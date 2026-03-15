@@ -66,18 +66,9 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
 
   async register(params: RegistrationParams): Promise<RegistrationResult> {
     try {
-      // QLD is migrating from QTenders Blazor SPA to VendorPanel-based Supplier Portal
+      // QLD Supplier Portal (VendorPanel-based)
       await this.navigateTo("https://www.supply.qld.gov.au/");
-
-      const pageUrl = this.page.url();
-
-      // Wait for page to load and look for register/signup options
-      try {
-        await this.page.waitForSelector('input[type="password"], input[type="email"], a[href*="register" i], a[href*="signup" i], button:has-text("Register"), a:has-text("Register"), a:has-text("Sign up"), a:has-text("Create account")', { timeout: 20000 });
-      } catch {
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No registration options found on QLD Supplier Portal at ${pageUrl}. HTML: ${bodySnippet.substring(0, 500)}` };
-      }
+      await this.page.waitForTimeout(3000);
 
       // Click register/signup link if on landing page
       const registerLink = await this.page.$('a[href*="register" i], a[href*="signup" i], a:has-text("Register"), a:has-text("Sign up"), a:has-text("Create account"), button:has-text("Register")');
@@ -86,40 +77,25 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
         await this.page.waitForTimeout(3000);
       }
 
-      // Wait for registration form fields
       try {
-        await this.page.waitForSelector('input[type="password"], input[type="email"]', { timeout: 20000 });
+        await this.page.waitForSelector('input:not([type="hidden"])', { timeout: 20000 });
       } catch {
-        const bodySnippet = await this.page.$eval('body', el => el.innerHTML.substring(0, 2000)).catch(() => 'N/A');
-        return { success: false, error: `No registration form on QLD Supplier Portal ${this.page.url()}. HTML: ${bodySnippet.substring(0, 500)}` };
+        return { success: false, error: `Registration page did not load at ${this.page.url()}` };
       }
 
-      const emailField = await this.page.$('input[type="email"], input[name*="email" i], input[id*="email" i], #email');
-      if (!emailField) {
-        const inputs = await this.page.$$eval('input:not([type="hidden"])', els => els.map((el) => ({ type: (el as any).type, id: el.id, name: (el as any).name })));
-        return { success: false, error: `No email field on register page. Inputs: ${JSON.stringify(inputs).substring(0, 500)}` };
-      }
-      await emailField.fill(params.email);
+      // Fill all available fields
+      await this.fillRegistrationFields(params);
 
-      const passwordField = await this.page.$('input[type="password"]:first-of-type');
-      if (passwordField) await passwordField.fill(params.password);
-
-      const confirmField = await this.page.$('input[name*="confirm" i], input[name*="retype" i], #confirmPassword');
-      if (confirmField) await confirmField.fill(params.password);
-
-      const companyField = await this.page.$('input[name*="organisation" i], input[name*="org" i], #organisationName');
-      if (companyField) await companyField.fill(params.companyName);
-
-      if (params.abn) {
-        const abnField = await this.page.$('input[name*="abn" i], #abn');
-        if (abnField) await abnField.fill(params.abn);
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
       }
 
-      const termsCheckbox = await this.page.$('input[type="checkbox"]');
-      if (termsCheckbox) await termsCheckbox.check();
-
-      await this.page.click('input[type="submit"], button[type="submit"]');
+      await this.page.click('button[type="submit"], input[type="submit"]').catch(() => {});
       await this.page.waitForTimeout(5000);
+
+      if (await this.detectCaptcha()) {
+        return { success: false, requiresManualStep: { type: "captcha" } };
+      }
 
       const hasError = await this.page.$(".error, .alert-danger, .errorMessage");
       if (hasError) {
@@ -132,18 +108,14 @@ export class QLDQTendersAdapter extends BaseSiteAdapter {
         return { success: true, requiresVerification: true };
       }
 
-      const loggedIn = await this.isLoggedIn();
-      if (loggedIn) {
+      if (await this.isLoggedIn()) {
         const cookies = await this.page.context().cookies();
         return { success: true, sessionData: { cookies } };
       }
 
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Registration failed",
-      };
+      return { success: false, error: error instanceof Error ? error.message : "Registration failed" };
     }
   }
 
